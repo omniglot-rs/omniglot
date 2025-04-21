@@ -1,7 +1,7 @@
 // ABI
 
 pub enum SysVAMD64ABI {}
-impl super::EncapfnABI for SysVAMD64ABI {}
+impl super::OGABI for SysVAMD64ABI {}
 
 macro_rules! sysv_amd64_areg_impl {
     ($reg:ident, $name:expr) => {

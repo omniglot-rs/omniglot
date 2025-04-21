@@ -1,14 +1,15 @@
-use crate::rt::EncapfnRt;
-use crate::EFResult;
+use crate::OGResult;
+use crate::foreign_memory::og_copy::OGCopy;
+use crate::rt::OGRuntime;
 
 pub unsafe trait Rv32iCInvokeRes<RT: Rv32iCBaseRt, T: Sized> {
     fn new() -> Self;
 
-    fn into_result_registers(self, rt: &RT) -> EFResult<T>;
-    unsafe fn into_result_stacked(self, rt: &RT, stacked_res: *mut T) -> EFResult<T>;
+    fn into_result_registers(self, rt: &RT) -> OGResult<OGCopy<T>>;
+    unsafe fn into_result_stacked(self, rt: &RT, stacked_res: *mut T) -> OGResult<OGCopy<T>>;
 }
 
-pub trait Rv32iCBaseRt: EncapfnRt<ABI = crate::abi::rv32i_c::Rv32iCABI> + Sized {
+pub trait Rv32iCBaseRt: OGRuntime<ABI = crate::abi::rv32i_c::Rv32iCABI> + Sized {
     type InvokeRes<T>: Rv32iCInvokeRes<Self, T>;
 }
 

@@ -1,8 +1,8 @@
 [package]
-name = "encapfn"
+name = "omniglot"
 version = "0.1.0"
 authors = [ "Leon Schuermann <leon@is.currently.online>" ]
-edition = "2021"
+edition = "2024"
 
 [features]
 # Enable features only available with full standard library support. This
@@ -21,6 +21,10 @@ std = []
 #   available when certain features are selected:
 nightly = []
 
+# Dangerous flags, for evaluation purposes only. Setting either of these flags
+# requires the `unsound` feature flag. We don't enforce this dependency here,
+# instead we produce a compile error when it is not set.
+unsound = []
 disable_upgrade_checks = []
 disable_validation_checks = []
 

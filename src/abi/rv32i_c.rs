@@ -1,7 +1,7 @@
 // ABI
 
 pub enum Rv32iCABI {}
-impl super::EncapfnABI for Rv32iCABI {}
+impl super::OGABI for Rv32iCABI {}
 
 macro_rules! rv32i_c_areg_impl {
     ($reg:ident, $name:expr) => {

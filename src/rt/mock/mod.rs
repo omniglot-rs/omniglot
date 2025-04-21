@@ -1,13 +1,15 @@
 use core::cell::UnsafeCell;
-use core::ffi::{c_void, CStr};
+use core::ffi::{CStr, c_void};
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 
 use crate::abi::GenericABI;
-use crate::branding::EFID;
-use crate::rt::{CallbackContext, CallbackReturn, EncapfnRt};
-use crate::types::{AccessScope, AllocScope, AllocTracker, EFMutRef, EFPtr, EFRef, EFSlice};
-use crate::EFError;
+use crate::alloc_tracker::AllocTracker;
+use crate::foreign_memory::{og_mut_ref::OGMutRef, og_ref::OGRef, og_slice::OGSlice};
+use crate::id::OGID;
+use crate::markers::{AccessScope, AllocScope};
+use crate::rt::{CallbackContext, CallbackReturn, OGRuntime};
+use crate::{OGError, OGResult};
 
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "std")))]
 #[cfg(any(feature = "std", doc))]
@@ -52,19 +54,19 @@ impl CallbackReturn for MockRtCallbackReturn {
     }
 }
 
-// TODO: this should be a hashmap which takes a runtime ID derived from the EFID
+// TODO: this should be a hashmap which takes a runtime ID derived from the OGID
 // as key, to work with multiple mock runtimes in parallel:
-static mut ACTIVE_ALLOC_CHAIN_HEAD_REF: Option<(*const MockRtAllocChain<'static>, *const ())> =
+static mut ACTIVE_ALLOC_CHAIN_HEAD_ROG: Option<(*const MockRtAllocChain<'static>, *const ())> =
     None;
 
 #[inline(never)]
-extern "C" fn mock_rt_callback_dispatch<ID: EFID>(
+extern "C" fn mock_rt_callback_dispatch<ID: OGID>(
     callback_id: usize,
     callback_ctx: &MockRtCallbackContext,
     callback_ret: &mut MockRtCallbackReturn,
 ) {
     let alloc_chain_head_ref_opt: &Option<(*const MockRtAllocChain<'_>, *const ())> =
-        unsafe { &*core::ptr::addr_of!(ACTIVE_ALLOC_CHAIN_HEAD_REF) };
+        unsafe { &*core::ptr::addr_of!(ACTIVE_ALLOC_CHAIN_HEAD_ROG) };
 
     let (alloc_chain_head_ref_ptr, id_imprint_ptr) = alloc_chain_head_ref_opt.unwrap();
     let alloc_chain_head_ref: &MockRtAllocChain<'static> = unsafe { &*alloc_chain_head_ref_ptr };
@@ -91,7 +93,7 @@ extern "C" fn mock_rt_callback_dispatch<ID: EFID>(
 }
 
 // TODO: reason about aliasing of the MockRtAllocChain
-extern "C" fn mock_rt_callback_trampoline<const CALLBACK_ID: usize, ID: EFID>(
+extern "C" fn mock_rt_callback_trampoline<const CALLBACK_ID: usize, ID: OGID>(
     a0: usize,
     a1: usize,
     a2: usize,
@@ -117,11 +119,11 @@ extern "C" fn mock_rt_callback_trampoline<const CALLBACK_ID: usize, ID: EFID>(
     }
 }
 
-pub enum MockRtCallbackTrampolinePool<ID: EFID> {
+pub enum MockRtCallbackTrampolinePool<ID: OGID> {
     _Dummy(PhantomData<ID>, core::convert::Infallible),
 }
 
-impl<ID: EFID> MockRtCallbackTrampolinePool<ID> {
+impl<ID: OGID> MockRtCallbackTrampolinePool<ID> {
     // TODO: pre-generate trampolines with a macro
     const CALLBACKS: [CallbackTrampolineFn; 32] = [
         mock_rt_callback_trampoline::<0, ID>,
@@ -171,13 +173,13 @@ pub trait MockRtAllocator {
     ) -> Result<R, MockRtAllocError>;
 }
 
-pub struct MockRt<ID: EFID, A: MockRtAllocator> {
+pub struct MockRt<ID: OGID, A: MockRtAllocator> {
     zero_copy_immutable: bool,
     allocator: A,
     id_imprint: ID::Imprint,
 }
 
-impl<ID: EFID, A: MockRtAllocator> MockRt<ID, A> {
+impl<ID: OGID, A: MockRtAllocator> MockRt<ID, A> {
     pub unsafe fn new(
         zero_copy_immutable: bool,
         all_upgrades_valid: bool,
@@ -209,25 +211,25 @@ impl<ID: EFID, A: MockRtAllocator> MockRt<ID, A> {
         callback: &'a mut C,
         alloc_scope: &mut AllocScope<
             '_,
-            <Self as EncapfnRt>::AllocTracker<'_>,
-            <Self as EncapfnRt>::ID,
+            <Self as OGRuntime>::AllocTracker<'_>,
+            <Self as OGRuntime>::ID,
         >,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         C: FnMut(
-            &<Self as EncapfnRt>::CallbackContext,
-            &mut <Self as EncapfnRt>::CallbackReturn,
+            &<Self as OGRuntime>::CallbackContext,
+            &mut <Self as OGRuntime>::CallbackReturn,
             *mut (),
             *mut (),
         ),
         F: for<'b> FnOnce(
-            *const <Self as EncapfnRt>::CallbackTrampolineFn,
-            &'b mut AllocScope<'_, <Self as EncapfnRt>::AllocTracker<'_>, <Self as EncapfnRt>::ID>,
+            *const <Self as OGRuntime>::CallbackTrampolineFn,
+            &'b mut AllocScope<'_, <Self as OGRuntime>::AllocTracker<'_>, <Self as OGRuntime>::ID>,
         ) -> R,
     {
         if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(EFError::IDMismatch);
+            return Err(OGError::IDMismatch);
         }
 
         struct Context<'a, ClosureTy> {
@@ -282,9 +284,9 @@ impl<ID: EFID, A: MockRtAllocator> MockRt<ID, A> {
         };
 
         let alloc_chain_head_ref_opt: &mut Option<(*const MockRtAllocChain<'_>, *const ())> =
-            unsafe { &mut *core::ptr::addr_of_mut!(ACTIVE_ALLOC_CHAIN_HEAD_REF) };
+            unsafe { &mut *core::ptr::addr_of_mut!(ACTIVE_ALLOC_CHAIN_HEAD_ROG) };
 
-        // Implement a "stack" of ACTIVE_ALLOC_CHAIN_HEAD_REFs, keeping the
+        // Implement a "stack" of ACTIVE_ALLOC_CHAIN_HEAD_ROGs, keeping the
         // previous value in a local variable. We'll put it back after running
         // our closure:
         let outer_alloc_chain_head_ref = alloc_chain_head_ref_opt.clone();
@@ -354,13 +356,15 @@ impl MockRtCallbackDescriptor<'_> {
         alloc_scope: *mut (),
         access_scope: *mut (),
     ) {
-        (self.wrapper)(
-            self.context,
-            callback_ctx,
-            callback_ret,
-            alloc_scope,
-            access_scope,
-        )
+        unsafe {
+            (self.wrapper)(
+                self.context,
+                callback_ctx,
+                callback_ret,
+                alloc_scope,
+                access_scope,
+            )
+        }
     }
 }
 
@@ -451,7 +455,7 @@ unsafe impl AllocTracker for MockRtAllocChain<'_> {
     }
 }
 
-unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
+unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
     type ID = ID;
     type AllocTracker<'a> = MockRtAllocChain<'a>;
     type ABI = GenericABI;
@@ -483,7 +487,7 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         callback: &'a mut C,
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         C: FnMut(
             &Self::CallbackContext,
@@ -497,7 +501,7 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         ) -> R,
     {
         if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(EFError::IDMismatch);
+            return Err(OGError::IDMismatch);
         }
 
         let typecast_callback =
@@ -545,13 +549,13 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         &self,
         layout: core::alloc::Layout,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: FnOnce(*mut ()) -> R,
     {
         // Simply proxy this to our underlying allocator:
         (unsafe { self.allocator.with_alloc(layout, fun) }).map_err(|e| match e {
-            MockRtAllocError::InvalidLayout => EFError::AllocInvalidLayout,
+            MockRtAllocError::InvalidLayout => OGError::AllocInvalidLayout,
         })
     }
 
@@ -560,12 +564,12 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         layout: core::alloc::Layout,
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(*mut (), &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>) -> R,
     {
         if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(EFError::IDMismatch);
+            return Err(OGError::IDMismatch);
         }
 
         self.allocate_stacked_untracked_mut(layout, move |ptr| {
@@ -601,15 +605,15 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         &self,
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(
-            EFMutRef<'b, Self::ID, T>,
+            OGMutRef<'b, Self::ID, T>,
             &'b mut AllocScope<'b, Self::AllocTracker<'b>, Self::ID>,
         ) -> R,
     {
         if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(EFError::IDMismatch);
+            return Err(OGError::IDMismatch);
         }
 
         let t = UnsafeCell::new(MaybeUninit::<T>::uninit());
@@ -640,8 +644,10 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         // this closure.
         Ok(fun(
             unsafe {
-                EFPtr::<T>::from(&t as *const _ as *mut UnsafeCell<MaybeUninit<T>> as *mut T)
-                    .upgrade_unchecked_mut(alloc_scope.id_imprint())
+                OGMutRef::upgrade_from_ptr_unchecked(
+                    &t as *const _ as *mut UnsafeCell<MaybeUninit<T>> as *mut T,
+                    alloc_scope.id_imprint(),
+                )
             },
             &mut inner_alloc_scope,
         ))
@@ -653,10 +659,10 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(
-            EFRef<'_, Self::ID, T>,
+            OGRef<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -664,7 +670,7 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         if self.id_imprint != alloc_scope.id_imprint()
             || self.id_imprint != access_scope.id_imprint()
         {
-            return Err(EFError::IDMismatch);
+            return Err(OGError::IDMismatch);
         }
 
         if self.zero_copy_immutable {
@@ -706,10 +712,10 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
             // this closure.
             Ok(fun(
                 unsafe {
-                    EFPtr::<T>::from(
+                    OGRef::upgrade_from_ptr_unchecked(
                         &stored as *const _ as *mut UnsafeCell<MaybeUninit<T>> as *mut T,
+                        alloc_scope.id_imprint(),
                     )
-                    .upgrade_unchecked(alloc_scope.id_imprint())
                 },
                 &mut inner_alloc_scope,
                 access_scope,
@@ -733,10 +739,10 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(
-            EFRef<'_, Self::ID, T>,
+            OGRef<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -744,7 +750,7 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         if self.id_imprint != alloc_scope.id_imprint()
             || self.id_imprint != access_scope.id_imprint()
         {
-            return Err(EFError::IDMismatch);
+            return Err(OGError::IDMismatch);
         }
 
         if self.zero_copy_immutable {
@@ -776,8 +782,10 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
             // this closure.
             Ok(fun(
                 unsafe {
-                    EFPtr::<T>::from(t as *const _ as *mut UnsafeCell<MaybeUninit<T>> as *mut T)
-                        .upgrade_unchecked(alloc_scope.id_imprint())
+                    OGRef::upgrade_from_ptr_unchecked(
+                        t as *const _ as *mut UnsafeCell<MaybeUninit<T>> as *mut T,
+                        alloc_scope.id_imprint(),
+                    )
                 },
                 &mut inner_alloc_scope,
                 access_scope,
@@ -801,10 +809,10 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(
-            EFSlice<'_, Self::ID, T>,
+            OGSlice<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -812,7 +820,7 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
         if self.id_imprint != alloc_scope.id_imprint()
             || self.id_imprint != access_scope.id_imprint()
         {
-            return Err(EFError::IDMismatch);
+            return Err(OGError::IDMismatch);
         }
 
         if self.zero_copy_immutable {
@@ -844,8 +852,11 @@ unsafe impl<ID: EFID, A: MockRtAllocator> EncapfnRt for MockRt<ID, A> {
             // this closure.
             Ok(fun(
                 unsafe {
-                    EFPtr::<T>::from(src as *const _ as *mut UnsafeCell<MaybeUninit<T>> as *mut T)
-                        .upgrade_unchecked_slice(src.len(), alloc_scope.id_imprint())
+                    OGSlice::upgrade_from_ptr_unchecked(
+                        src as *const _ as *mut UnsafeCell<MaybeUninit<T>> as *mut T,
+                        src.len(),
+                        alloc_scope.id_imprint(),
+                    )
                 },
                 &mut inner_alloc_scope,
                 access_scope,

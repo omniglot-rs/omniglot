@@ -1,1 +1,1 @@
-# Encapsulated Functions
+# Omniglot Base Crate

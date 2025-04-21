@@ -1,22 +1,64 @@
 #![no_std]
+// The doc_cfg feature allows an API be documented as only available in some
+// specific platforms. As this is only available on nightly, we gate it behind
+// this crate's `nightly` feature flag.
+//
+// https://doc.rust-lang.org/unstable-book/language-features/doc-cfg.html
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
 
 #[cfg(feature = "std")]
 extern crate std;
 
+// Public modules:
 pub mod abi;
-pub mod branding;
+pub mod alloc_tracker;
+pub mod bit_pattern_validate;
+pub mod foreign_memory;
+pub mod id;
+pub mod markers;
 pub mod rt;
-pub mod types;
+
+// Internal modules:
 mod util;
 
+/// Omniglot prelude module
+///
+/// Import this as `use omniglot::prelude::*;` to bring all commonly
+/// used Omniglot types and functions into scope.
+pub mod prelude {
+    // ::id
+    pub use crate::id::{OGID, OGLifetimeBranding, OGRuntimeBranding};
+}
+
+/// Shared Omniglot error type
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[repr(C)]
-pub enum EFError {
+pub enum OGError {
+    /// An internal error occurred.
+    ///
+    /// TODO: If the `log` feature is enabled, additional context of this error
+    /// will be logged at level `ERROR`.
     InternalError,
+
+    /// The Omniglot runtime could not allocate sufficient memory for the
+    /// requested operation.
+    ///
+    /// This may either indicate that the main program's global heap is
+    /// exhausted, or that the foreign domain's assigned memory cannot hold the
+    /// requested allocation.
     AllocNoMem,
+
+    /// The requested operation requires an allocation with invalid layout (such
+    /// as a zero-length allocation).
     AllocInvalidLayout,
+
+    /// The operation could not be completed, as there is a mismatch between the
+    /// IDs of different Omniglot runtime components.
+    ///
+    /// Most likely, this error indicates that the supplied [`AllocScope`] or
+    /// [`AccessScope`] marker type is of the expected type, but belongs to a
+    /// different Omniglot runtime instance. Marker types must always be used
+    /// with the exact Omniglot instance alongside which they were created.
     IDMismatch,
 }
 
-pub type EFResult<T> = Result<types::EFCopy<T>, EFError>;
+pub type OGResult<T> = Result<T, OGError>;

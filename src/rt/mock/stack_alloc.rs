@@ -115,48 +115,50 @@ impl StackFrameAlloc for StackFrameAllocAMD64 {
         let align_bitmask = !align.wrapping_sub(1);
 
         // Magic:
-        core::arch::asm!(
-            "
-            // Save the original stack pointer in a callee-saved register, as we
-            // don't know ahead of time by how much we'll be moving it downward,
-            // and need to restore it:
-            mov r12, rsp
+        unsafe {
+            core::arch::asm!(
+                    "
+                // Save the original stack pointer in a callee-saved register, as we
+                // don't know ahead of time by how much we'll be moving it downward,
+                // and need to restore it:
+                mov r12, rsp
 
-            // Move the stack pointer downward by `size`:
-            sub rsp, rsi
+                // Move the stack pointer downward by `size`:
+                sub rsp, rsi
 
-            // We have allcated `size` bytes on the stack, but they may not be
-            // properly aligned yet. We are given align_bitmask, which we can AND
-            // with the stack pointer to align it downward efficiently.
-            //
-            // This is guaranteed to align our stack to a 16-byte boundary, as is
-            // required for invoking our extern C function:
-            and rsp, {align_bitmask_reg}
+                // We have allcated `size` bytes on the stack, but they may not be
+                // properly aligned yet. We are given align_bitmask, which we can AND
+                // with the stack pointer to align it downward efficiently.
+                //
+                // This is guaranteed to align our stack to a 16-byte boundary, as is
+                // required for invoking our extern C function:
+                and rsp, {align_bitmask_reg}
 
-            // Now, call the function, with the allocated pointer (equal to rsp)
-            // loaded in the first argument register:
-            mov rdi, rsp
-            call {cb_reg}
+                // Now, call the function, with the allocated pointer (equal to rsp)
+                // loaded in the first argument register:
+                mov rdi, rsp
+                call {cb_reg}
 
-            // Finally, restore our old stack pointer:
-            mov rsp, r12
-            ",
-            // Pass the second and third argument to our callback in the correct
-            // registers already:
-            in("si") size,
-            in("dx") data,
+                // Finally, restore our old stack pointer:
+                mov rsp, r12
+                ",
+                    // Pass the second and third argument to our callback in the correct
+                    // registers already:
+                    in("si") size,
+                    in("dx") data,
 
-            // Other values we need:
-            cb_reg = in(reg) cb,
-            align_bitmask_reg = in(reg) align_bitmask,
+                    // Other values we need:
+                    cb_reg = in(reg) cb,
+                    align_bitmask_reg = in(reg) align_bitmask,
 
-            // We additionally clobber r12 as a callee-saved register to store our
-            // original stack pointer:
-            out("r12") _,
+                    // We additionally clobber r12 as a callee-saved register to store our
+                    // original stack pointer:
+                    out("r12") _,
 
-            // Clobber all registers not preserved by a function call:
-            clobber_abi("system"),
-        );
+                    // Clobber all registers not preserved by a function call:
+                    clobber_abi("system"),
+            );
+        }
     }
 }
 
@@ -187,50 +189,52 @@ impl StackFrameAlloc for StackFrameAllocRiscv {
         let align_bitmask = !align.wrapping_sub(1);
 
         // Magic:
-        core::arch::asm!(
-            "
-            // Save the original stack pointer in a callee-saved register, as we
-            // don't know ahead of time by how much we'll be moving it downward,
-            // and need to restore it:
-            mv s2, sp
+        unsafe {
+            core::arch::asm!(
+                "
+                // Save the original stack pointer in a callee-saved register, as we
+                // don't know ahead of time by how much we'll be moving it downward,
+                // and need to restore it:
+                mv s2, sp
 
-            // Move the stack pointer downward by `size`:
-            sub sp, sp, a1
+                // Move the stack pointer downward by `size`:
+                sub sp, sp, a1
 
-            // We have allcated `size` bytes on the stack, but they may not be
-            // properly aligned yet. We are given align_bitmask, which we can AND
-            // with the stack pointer to align it downward efficiently.
-            //
-            // This is guaranteed to align our stack to a 16-byte boundary, as is
-            // required for invoking our extern C function:
-            and sp, sp, {align_bitmask_reg}
+                // We have allcated `size` bytes on the stack, but they may not be
+                // properly aligned yet. We are given align_bitmask, which we can AND
+                // with the stack pointer to align it downward efficiently.
+                //
+                // This is guaranteed to align our stack to a 16-byte boundary, as is
+                // required for invoking our extern C function:
+                and sp, sp, {align_bitmask_reg}
 
-            // Now, call the function, with the allocated pointer (equal to sp)
-            // loaded in the first argument register:
-            mv a0, sp
-            jalr {cb_reg}
+                // Now, call the function, with the allocated pointer (equal to sp)
+                // loaded in the first argument register:
+                mv a0, sp
+                jalr {cb_reg}
 
-            // Finally, restore our old stack pointer:
-            mv sp, s2
-            ",
-            // Pass the second and third argument to our callback in the correct
-            // registers already:
-            in("a1") size,
-            in("a2") data,
+                // Finally, restore our old stack pointer:
+                mv sp, s2
+                ",
+                // Pass the second and third argument to our callback in the correct
+                // registers already:
+                in("a1") size,
+                in("a2") data,
 
-            // Other in(_) registers must not clobber a0:
-            out("a0") _,
+                // Other in(_) registers must not clobber a0:
+                out("a0") _,
 
-            // Other values we need:
-            cb_reg = in(reg) cb,
-            align_bitmask_reg = in(reg) align_bitmask,
+                // Other values we need:
+                cb_reg = in(reg) cb,
+                align_bitmask_reg = in(reg) align_bitmask,
 
-            // We additionally clobber s2 as a callee-saved register to store our
-            // original stack pointer:
-            out("s2") _,
+                // We additionally clobber s2 as a callee-saved register to store our
+                // original stack pointer:
+                out("s2") _,
 
-            // Clobber all registers not preserved by a function call:
-            clobber_abi("system"),
-        );
+                // Clobber all registers not preserved by a function call:
+                clobber_abi("system"),
+            );
+        }
     }
 }

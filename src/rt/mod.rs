@@ -1,13 +1,16 @@
+// TODO: why do we need these?
 pub mod mock;
 pub mod rv32i_c;
 pub mod sysv_amd64;
 
-use crate::abi::EncapfnABI;
-use crate::branding::EFID;
-use crate::types::{
-    AccessScope, AllocScope, AllocTracker, EFMutRef, EFMutSlice, EFPtr, EFRef, EFSlice,
+use crate::abi::OGABI;
+use crate::alloc_tracker::AllocTracker;
+use crate::foreign_memory::{
+    og_mut_ref::OGMutRef, og_mut_slice::OGMutSlice, og_ref::OGRef, og_slice::OGSlice,
 };
-use crate::EFError;
+use crate::id::OGID;
+use crate::markers::{AccessScope, AllocScope};
+use crate::{OGError, OGResult};
 
 pub trait CallbackContext {
     fn get_argument_register(&self, reg: usize) -> Option<usize>;
@@ -17,10 +20,10 @@ pub trait CallbackReturn {
     fn set_return_register(&mut self, reg: usize, value: usize) -> bool;
 }
 
-pub unsafe trait EncapfnRt {
-    type ID: EFID;
+pub unsafe trait OGRuntime {
+    type ID: OGID;
     type AllocTracker<'a>: AllocTracker;
-    type ABI: EncapfnABI;
+    type ABI: OGABI;
     type CallbackTrampolineFn;
     type CallbackContext: CallbackContext + core::fmt::Debug + Clone;
     type CallbackReturn: CallbackReturn + core::fmt::Debug + Clone;
@@ -46,7 +49,7 @@ pub unsafe trait EncapfnRt {
         callback: &mut C,
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         C: FnMut(
             &Self::CallbackContext,
@@ -72,7 +75,7 @@ pub unsafe trait EncapfnRt {
         &self,
         layout: core::alloc::Layout,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: FnOnce(*mut ()) -> R;
 
@@ -82,7 +85,7 @@ pub unsafe trait EncapfnRt {
         layout: core::alloc::Layout,
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(*mut (), &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>) -> R;
 
@@ -91,10 +94,10 @@ pub unsafe trait EncapfnRt {
         &self,
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(
-            EFMutRef<'_, Self::ID, T>,
+            OGMutRef<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         ) -> R,
     {
@@ -105,7 +108,7 @@ pub unsafe trait EncapfnRt {
             |allocated_ptr, new_alloc_scope| {
                 fun(
                     unsafe {
-                        EFPtr::<T>::from(allocated_ptr as *mut T).upgrade_unchecked_mut(id_imprint)
+                        OGMutRef::upgrade_from_ptr_unchecked(allocated_ptr as *mut T, id_imprint)
                     },
                     new_alloc_scope,
                 )
@@ -119,10 +122,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> Result<R, OGError>
     where
         F: for<'b> FnOnce(
-            EFMutRef<'_, Self::ID, T>,
+            OGMutRef<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -139,10 +142,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(
-            EFRef<'_, Self::ID, T>,
+            OGRef<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -163,10 +166,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> Result<R, OGError>
     where
         F: for<'b> FnOnce(
-            EFMutRef<'_, Self::ID, T>,
+            OGMutRef<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -183,10 +186,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> Result<R, OGError>
     where
         F: for<'b> FnOnce(
-            EFRef<'_, Self::ID, T>,
+            OGRef<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -207,10 +210,10 @@ pub unsafe trait EncapfnRt {
         len: usize,
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> Result<R, OGError>
     where
         F: for<'b> FnOnce(
-            EFMutSlice<'_, Self::ID, T>,
+            OGMutSlice<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         ) -> R,
     {
@@ -221,8 +224,11 @@ pub unsafe trait EncapfnRt {
             |allocated_ptr, new_alloc_scope| {
                 fun(
                     unsafe {
-                        EFPtr::<T>::from(allocated_ptr as *mut T)
-                            .upgrade_unchecked_slice_mut(len, id_imprint)
+                        OGMutSlice::upgrade_from_ptr_unchecked(
+                            allocated_ptr as *mut T,
+                            len,
+                            id_imprint,
+                        )
                     },
                     new_alloc_scope,
                 )
@@ -237,10 +243,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> OGResult<R>
     where
         F: for<'b> FnOnce(
-            EFMutSlice<'_, Self::ID, T>,
+            OGMutSlice<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -259,10 +265,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> Result<R, OGError>
     where
         F: for<'b> FnOnce(
-            EFMutSlice<'_, Self::ID, T>,
+            OGMutSlice<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -276,10 +282,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> Result<R, OGError>
     where
         F: for<'b> FnOnce(
-            EFSlice<'_, Self::ID, T>,
+            OGSlice<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
@@ -300,10 +306,10 @@ pub unsafe trait EncapfnRt {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         fun: F,
-    ) -> Result<R, EFError>
+    ) -> Result<R, OGError>
     where
         F: for<'b> FnOnce(
-            EFSlice<'_, Self::ID, T>,
+            OGSlice<'_, Self::ID, T>,
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
             &'b mut AccessScope<Self::ID>,
         ) -> R,
