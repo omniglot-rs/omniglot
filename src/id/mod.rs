@@ -57,6 +57,8 @@ use core::cmp::{PartialEq, PartialOrd};
 use core::fmt::Debug;
 
 pub mod lifetime;
+
+#[cfg(feature = "runtime_id")]
 pub mod runtime;
 
 /// An Omniglot instance ID type.

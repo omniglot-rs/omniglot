@@ -12,6 +12,12 @@ rust-version = "1.87.0"
 #   stack frame allocator assembly written)
 std = []
 
+# Add support for the `RuntimeBranding` Omniglot ID type, which assigns
+# runtime-checked IDs using a global AtomicU64. This can allow multiple Omniglot
+# runtimes to share an identical type signature. However, it requires support
+# for atomics, and thus we make it an optional, opt-in feature:
+runtime_id = []
+
 # Enable features only available when compiling on a nightly toolchain. This is
 # a flag for features that are "unconditionally better" and which do not
 # influence the overall behavior of the library meaningfully. Configuration
