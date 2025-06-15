@@ -6,7 +6,7 @@ pub unsafe trait SysVAMD64InvokeRes<RT: SysVAMD64BaseRt, T: Sized> {
     fn new() -> Self;
 
     fn into_result_registers(self, rt: &RT) -> OGResult<OGCopy<T>>;
-    unsafe fn into_result_stacked(self, rt: &RT, stacked_res: *mut T) -> OGResult<T>;
+    unsafe fn into_result_stacked(self, rt: &RT, stacked_res: *mut T) -> OGResult<OGCopy<T>>;
 }
 
 pub trait SysVAMD64BaseRt: OGRuntime<ABI = crate::abi::sysv_amd64::SysVAMD64ABI> + Sized {
