@@ -21,15 +21,6 @@ pub mod rt;
 // Internal modules:
 mod util;
 
-/// Omniglot prelude module
-///
-/// Import this as `use omniglot::prelude::*;` to bring all commonly
-/// used Omniglot types and functions into scope.
-pub mod prelude {
-    // ::id
-    pub use crate::id::{OGID, OGLifetimeBranding, OGRuntimeBranding};
-}
-
 /// Shared Omniglot error type
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OGError {
