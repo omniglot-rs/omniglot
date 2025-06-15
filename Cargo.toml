@@ -3,6 +3,7 @@ name = "omniglot"
 version = "0.1.0"
 authors = [ "Leon Schuermann <leon@is.currently.online>" ]
 edition = "2024"
+rust-version = "1.87.0"
 
 [features]
 # Enable features only available with full standard library support. This
