@@ -30,3 +30,4 @@ disable_upgrade_checks = []
 disable_validation_checks = []
 
 [dependencies]
+seq-macro = "0.3.6"

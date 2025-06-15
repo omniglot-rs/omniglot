@@ -124,41 +124,9 @@ pub enum MockRtCallbackTrampolinePool<ID: OGID> {
 }
 
 impl<ID: OGID> MockRtCallbackTrampolinePool<ID> {
-    // TODO: pre-generate trampolines with a macro
-    const CALLBACKS: [CallbackTrampolineFn; 32] = [
-        mock_rt_callback_trampoline::<0, ID>,
-        mock_rt_callback_trampoline::<1, ID>,
-        mock_rt_callback_trampoline::<2, ID>,
-        mock_rt_callback_trampoline::<3, ID>,
-        mock_rt_callback_trampoline::<4, ID>,
-        mock_rt_callback_trampoline::<5, ID>,
-        mock_rt_callback_trampoline::<6, ID>,
-        mock_rt_callback_trampoline::<7, ID>,
-        mock_rt_callback_trampoline::<8, ID>,
-        mock_rt_callback_trampoline::<9, ID>,
-        mock_rt_callback_trampoline::<10, ID>,
-        mock_rt_callback_trampoline::<11, ID>,
-        mock_rt_callback_trampoline::<12, ID>,
-        mock_rt_callback_trampoline::<13, ID>,
-        mock_rt_callback_trampoline::<14, ID>,
-        mock_rt_callback_trampoline::<15, ID>,
-        mock_rt_callback_trampoline::<16, ID>,
-        mock_rt_callback_trampoline::<17, ID>,
-        mock_rt_callback_trampoline::<18, ID>,
-        mock_rt_callback_trampoline::<19, ID>,
-        mock_rt_callback_trampoline::<20, ID>,
-        mock_rt_callback_trampoline::<21, ID>,
-        mock_rt_callback_trampoline::<22, ID>,
-        mock_rt_callback_trampoline::<23, ID>,
-        mock_rt_callback_trampoline::<24, ID>,
-        mock_rt_callback_trampoline::<25, ID>,
-        mock_rt_callback_trampoline::<26, ID>,
-        mock_rt_callback_trampoline::<27, ID>,
-        mock_rt_callback_trampoline::<28, ID>,
-        mock_rt_callback_trampoline::<29, ID>,
-        mock_rt_callback_trampoline::<30, ID>,
-        mock_rt_callback_trampoline::<31, ID>,
-    ];
+    const CALLBACKS: [CallbackTrampolineFn; 512] = seq_macro::seq!(N in 0..512 { [
+	    #( mock_rt_callback_trampoline::<N, ID>, )*
+	] });
 }
 
 pub enum MockRtAllocError {
