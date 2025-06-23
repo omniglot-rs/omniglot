@@ -315,3 +315,47 @@ impl<'alloc, ID: OGID, const N: usize, T: 'static> core::iter::Iterator
         }
     }
 }
+
+/// Get an `OGMutRef` reference to a member of a struct wrapped in an
+/// `OGMutRef`
+///
+/// TODO: this is a workaround until we derive OGType for nested types
+/// in bindgen and provide safe methods for accessing struct members.
+///
+/// Usage example:
+/// ```
+/// use omniglot::foreign_memory::og_mut_ref::OGMutRef;
+/// use omniglot::id::OGID;
+/// use omniglot::ogmutref_get_field;
+///
+/// struct TestStruct {
+///     test_member: u32,
+/// }
+///
+/// fn test_fn<'alloc, ID: OGID>(test_struct: OGMutRef<'alloc, ID, TestStruct>) {
+///     let _test_member_ref: OGMutRef<'alloc, ID, u32> =
+///         unsafe { ogmutref_get_field!(TestStruct, u32, test_struct, test_member) };
+/// }
+/// ```
+#[macro_export]
+macro_rules! ogmutref_get_field {
+    ($outer_type:ty, $inner_type:ty, $outer_ref:expr, $member:ident) => {{
+        unsafe fn ogmutref_get_field_helper<'alloc, ID: $crate::id::OGID>(
+            outer: $crate::foreign_memory::og_mut_ref::OGMutRef<'alloc, ID, $outer_type>,
+        ) -> $crate::foreign_memory::og_mut_ref::OGMutRef<'alloc, ID, $inner_type> {
+            let outer_ptr: *mut () = outer.as_ptr().cast::<()>().into();
+            let inner_ptr: *mut $inner_type = unsafe {
+                outer_ptr.byte_offset(::core::mem::offset_of!($outer_type, $member,) as isize)
+                    as *mut $inner_type
+            };
+            unsafe {
+                $crate::foreign_memory::og_mut_ref::OGMutRef::upgrade_from_ptr_unchecked(
+                    inner_ptr,
+                    outer.id_imprint(),
+                )
+            }
+        }
+
+        ogmutref_get_field_helper($outer_ref)
+    }};
+}
