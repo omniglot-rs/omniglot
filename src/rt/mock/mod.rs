@@ -495,6 +495,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
 
     fn execute<R, F: FnOnce() -> R>(
         &self,
+        _target_symbol: *const (),
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         f: F,

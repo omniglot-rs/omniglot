@@ -66,6 +66,7 @@ pub unsafe trait OGRuntime {
     // invoke asm. May be implemented as a nop.
     fn execute<R, F: FnOnce() -> R>(
         &self,
+        target_symbol: *const (),
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         f: F,
