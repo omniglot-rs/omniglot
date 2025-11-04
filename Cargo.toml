@@ -12,7 +12,7 @@ name = "omniglot-workspace"
 version = "0.1.0"
 authors = [ "Leon Schuermann <leon@is.currently.online>" ]
 edition = "2024"
-rust-version = "1.87.0"
+rust-version = "1.88.0"
 
 [workspace.dependencies.bindgen]
 # Used within crates in examples/*:
