@@ -125,8 +125,8 @@ pub enum MockRtCallbackTrampolinePool<ID: OGID> {
 
 impl<ID: OGID> MockRtCallbackTrampolinePool<ID> {
     const CALLBACKS: [CallbackTrampolineFn; 512] = seq_macro::seq!(N in 0..512 { [
-	    #( mock_rt_callback_trampoline::<N, ID>, )*
-	] });
+        #( mock_rt_callback_trampoline::<N, ID>, )*
+    ] });
 }
 
 pub enum MockRtAllocError {
