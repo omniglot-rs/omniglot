@@ -6,3 +6,7 @@ target
 
 # Ignore VIM temp/swapfiles
 *.swp
+
+# Nix result symlinks
+/result
+/result-*
