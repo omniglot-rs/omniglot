@@ -13,3 +13,9 @@ version = "0.1.0"
 authors = [ "Leon Schuermann <leon@is.currently.online>" ]
 edition = "2024"
 rust-version = "1.87.0"
+
+[workspace.dependencies.bindgen]
+# Used within crates in examples/*:
+git = "https://github.com/omniglot-rs/rust-bindgen"
+rev = "6ac78b50e33ac7b68a845755cfdc2e2b60d22ff8"
+# path = "../rust-bindgen/bindgen"

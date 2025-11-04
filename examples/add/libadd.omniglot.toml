@@ -1,0 +1,4 @@
+wrapper_name = "LibAdd"
+
+[functions.add]
+fntab_id = 0

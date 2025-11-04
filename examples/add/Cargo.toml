@@ -1,6 +1,12 @@
 [package]
 name = "omniglot-example-add"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition = "2021"
+
+[build-dependencies]
+bindgen.workspace = true
+cc = "1.2.44"
 
 [dependencies]
+omniglot = { path = "../../omniglot" }
+env_logger = "0.11.8"

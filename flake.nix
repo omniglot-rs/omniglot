@@ -92,25 +92,33 @@
             inherit cargoArtifacts;
           };
 
+          # Common arguments shared across all examples:
+          exampleCrateArgs = individualCrateArgs // {
+            LIBCLANG_PATH = "${pkgs.libclang.lib}/lib";
+          };
+
           fileSetForCrate =
-            crate:
+            crate: addlFiles:
             lib.fileset.toSource {
               root = ./.;
-              fileset = lib.fileset.unions [
-                ./Cargo.toml
-                ./Cargo.lock
+              fileset = lib.fileset.unions (
+                [
+                  ./Cargo.toml
+                  ./Cargo.lock
 
-                # Files for the base `omniglot` crate, always required.
-                (craneLib.fileset.commonCargoSources ./omniglot)
+                  # Files for the base `omniglot` crate, always required.
+                  (craneLib.fileset.commonCargoSources ./omniglot)
 
-                # We have to include one example for Cargo to not complain about
-                # the wildcard in the `Cargo.toml` workspace members for
-                # `examples/*`. We (somewhat arbitrarily) include the `add`
-                # example, as it is small and unlikely to change.
-                (craneLib.fileset.commonCargoSources ./examples/add)
+                  # We have to include one example for Cargo to not complain about
+                  # the wildcard in the `Cargo.toml` workspace members for
+                  # `examples/*`. We (somewhat arbitrarily) include the `add`
+                  # example, as it is small and unlikely to change.
+                  (craneLib.fileset.commonCargoSources ./examples/add)
 
-                (craneLib.fileset.commonCargoSources crate)
-              ];
+                  (craneLib.fileset.commonCargoSources crate)
+                ]
+                ++ addlFiles
+              );
             };
 
           omniglot = craneLib.buildPackage (
@@ -119,17 +127,20 @@
               inherit cargoArtifacts;
               pname = "omniglot";
               cargoExtraArgs = "-p omniglot";
-              src = fileSetForCrate ./omniglot;
+              src = fileSetForCrate ./omniglot [ ];
             }
           );
 
           omniglot-example-add = craneLib.buildPackage (
-            individualCrateArgs
+            exampleCrateArgs
             // {
               inherit cargoArtifacts;
               pname = "omniglot-example-add";
               cargoExtraArgs = "-p omniglot-example-add";
-              src = fileSetForCrate ./examples/add;
+              src = fileSetForCrate ./examples/add [
+                # Include the libadd sources:
+                ./examples/add/libadd
+              ];
             }
           );
         };
@@ -172,6 +183,10 @@
           packages = with pkgs; [
             stableRustToolchain
           ];
+
+          shellHook = ''
+            export LIBCLANG_PATH="${pkgs.libclang.lib}/lib"
+          '';
         };
       }
     );
