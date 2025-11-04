@@ -196,9 +196,7 @@ impl<ID: OGID, A: MockRtAllocator> MockRt<ID, A> {
             &'b mut AllocScope<'_, <Self as OGRuntime>::AllocTracker<'_>, <Self as OGRuntime>::ID>,
         ) -> R,
     {
-        if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(OGError::IDMismatch);
-        }
+        self.id_imprint_check(Some(alloc_scope), None)?;
 
         struct Context<'a, ClosureTy> {
             closure: &'a mut ClosureTy,
@@ -282,6 +280,23 @@ impl<ID: OGID, A: MockRtAllocator> MockRt<ID, A> {
         // All the references of `_inner_alloc_chain_head_ref` are local to our
         // stack, so there's nothing we'd need to deallocate:
         Ok(res)
+    }
+
+    #[inline]
+    fn id_imprint_check(
+        &self,
+        alloc_scope: Option<
+            &mut AllocScope<'_, <Self as OGRuntime>::AllocTracker<'_>, <Self as OGRuntime>::ID>,
+        >,
+        access_scope: Option<&mut AccessScope<<Self as OGRuntime>::ID>>,
+    ) -> OGResult<()> {
+        if alloc_scope.map_or(false, |s| self.id_imprint != s.id_imprint())
+            || access_scope.map_or(false, |s| self.id_imprint != s.id_imprint())
+        {
+            Err(OGError::IDMismatch)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -468,9 +483,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
             &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         ) -> R,
     {
-        if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(OGError::IDMismatch);
-        }
+        self.id_imprint_check(Some(alloc_scope), None)?;
 
         let typecast_callback =
             &mut |callback_ctx: &MockRtCallbackContext,
@@ -537,9 +550,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
     where
         F: for<'b> FnOnce(*mut (), &'b mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>) -> R,
     {
-        if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(OGError::IDMismatch);
-        }
+        self.id_imprint_check(Some(alloc_scope), None)?;
 
         self.allocate_stacked_untracked_mut(layout, move |ptr| {
             // Create a new AllocScope instance that wraps a new allocation
@@ -581,9 +592,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
             &'b mut AllocScope<'b, Self::AllocTracker<'b>, Self::ID>,
         ) -> R,
     {
-        if self.id_imprint != alloc_scope.id_imprint() {
-            return Err(OGError::IDMismatch);
-        }
+        self.id_imprint_check(Some(alloc_scope), None)?;
 
         let t = UnsafeCell::new(MaybeUninit::<T>::uninit());
 
@@ -636,11 +645,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
             &'b mut AccessScope<Self::ID>,
         ) -> R,
     {
-        if self.id_imprint != alloc_scope.id_imprint()
-            || self.id_imprint != access_scope.id_imprint()
-        {
-            return Err(OGError::IDMismatch);
-        }
+        self.id_imprint_check(Some(alloc_scope), Some(access_scope))?;
 
         if self.zero_copy_immutable {
             // We can't wrap `write_stacked_ref_t` here, as our `T: ?Copy`.
@@ -716,11 +721,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
             &'b mut AccessScope<Self::ID>,
         ) -> R,
     {
-        if self.id_imprint != alloc_scope.id_imprint()
-            || self.id_imprint != access_scope.id_imprint()
-        {
-            return Err(OGError::IDMismatch);
-        }
+        self.id_imprint_check(Some(alloc_scope), Some(access_scope))?;
 
         if self.zero_copy_immutable {
             // For safety considerations, see `write_stacked_t`.
@@ -786,11 +787,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
             &'b mut AccessScope<Self::ID>,
         ) -> R,
     {
-        if self.id_imprint != alloc_scope.id_imprint()
-            || self.id_imprint != access_scope.id_imprint()
-        {
-            return Err(OGError::IDMismatch);
-        }
+        self.id_imprint_check(Some(alloc_scope), Some(access_scope))?;
 
         if self.zero_copy_immutable {
             // For safety considerations, see `write_stacked_t`.
