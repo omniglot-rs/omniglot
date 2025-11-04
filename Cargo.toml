@@ -1,39 +1,15 @@
-[package]
-name = "omniglot"
+[workspace]
+resolver = "3"
+members = [
+   "omniglot",
+   "examples/*",
+]
+
+[workspace.metadata.crane]
+name = "omniglot-workspace"
+
+[workspace.package]
 version = "0.1.0"
 authors = [ "Leon Schuermann <leon@is.currently.online>" ]
 edition = "2024"
 rust-version = "1.87.0"
-
-[features]
-# Enable features only available with full standard library support. This
-# includes:
-# - a heap allocator backend for MockRt (useful for platforms that don't have
-#   stack frame allocator assembly written)
-std = []
-
-# Add support for the `RuntimeBranding` Omniglot ID type, which assigns
-# runtime-checked IDs using a global AtomicU64. This can allow multiple Omniglot
-# runtimes to share an identical type signature. However, it requires support
-# for atomics, and thus we make it an optional, opt-in feature:
-runtime_id = []
-
-# Enable features only available when compiling on a nightly toolchain. This is
-# a flag for features that are "unconditionally better" and which do not
-# influence the overall behavior of the library meaningfully. Configuration
-# options that don't meet these constraints should get their own feature flags.
-#
-# As of now, this includes:
-# - generating #[doc(cfg( attributes to document that some items are only
-#   available when certain features are selected:
-nightly = []
-
-# Dangerous flags, for evaluation purposes only. Setting either of these flags
-# requires the `unsound` feature flag. We don't enforce this dependency here,
-# instead we produce a compile error when it is not set.
-unsound = []
-disable_upgrade_checks = []
-disable_validation_checks = []
-
-[dependencies]
-seq-macro = "0.3.6"

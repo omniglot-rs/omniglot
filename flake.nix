@@ -39,7 +39,7 @@
 
         msrvRustToolchain =
           (fenix.packages."${system}".fromToolchainName {
-            name = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.rust-version;
+            name = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).workspace.package.rust-version;
             sha256 = "sha256-KUm16pHj+cRedf8vxs/Hd2YWxpOrWZ7UOrwhILdSJBU=";
           }).withComponents
             rustToolchainComponents;
@@ -50,11 +50,36 @@
           cargo = stableRustToolchain;
         };
 
-        rustPackagesForToolchain = rustToolchain: rec {
+        rustPackagesForRustToolchain = rustToolchain: rec {
           craneLib = (crane.mkLib pkgs).overrideToolchain (_p: rustToolchain);
 
+          cleanedRustSrc =
+            let
+              # Path comes with "/nix/store/${hash}-source/" stripped
+              relSrcFilter =
+                relPath: type:
+                # Include C header files and compiled artifacts for the `add` example:
+                (lib.hasPrefix "examples/add/libadd" relPath);
+
+              # Strip "/nix/store/${hash}-source/" prefix:
+              trimStorePathPrefix =
+                path: builtins.head (builtins.match "^\/nix\/store\/[a-zA-Z0-9]+\-source\/(.*)" path);
+
+              # Combine crane's Cargo source filter and a custom one operating on
+              # relative paths, with "/nix/store/${hash}-source/" stripped.
+              srcFilter =
+                path: type:
+                (craneLib.filterCargoSources path type) || (relSrcFilter (trimStorePathPrefix path) type);
+            in
+            lib.cleanSourceWith {
+              src = ./.;
+              filter = srcFilter;
+              # Be reproducible, regardless of the directory name
+              name = "omniglot-src";
+            };
+
           baseRustBuildArgs = {
-            src = craneLib.cleanCargoSource ./.;
+            src = cleanedRustSrc;
             strictDeps = true;
           };
 
@@ -62,10 +87,49 @@
           # can reuse all of that work (e.g. via cachix) when running in CI:
           cargoArtifacts = craneLib.buildDepsOnly baseRustBuildArgs;
 
+          # Common arguments shared across all individual targets:
+          individualCrateArgs = baseRustBuildArgs // {
+            inherit cargoArtifacts;
+          };
+
+          fileSetForCrate =
+            crate:
+            lib.fileset.toSource {
+              root = ./.;
+              fileset = lib.fileset.unions [
+                ./Cargo.toml
+                ./Cargo.lock
+
+                # Files for the base `omniglot` crate, always required.
+                (craneLib.fileset.commonCargoSources ./omniglot)
+
+                # We have to include one example for Cargo to not complain about
+                # the wildcard in the `Cargo.toml` workspace members for
+                # `examples/*`. We (somewhat arbitrarily) include the `add`
+                # example, as it is small and unlikely to change.
+                (craneLib.fileset.commonCargoSources ./examples/add)
+
+                (craneLib.fileset.commonCargoSources crate)
+              ];
+            };
+
           omniglot = craneLib.buildPackage (
-            baseRustBuildArgs
+            individualCrateArgs
             // {
               inherit cargoArtifacts;
+              pname = "omniglot";
+              cargoExtraArgs = "-p omniglot";
+              src = fileSetForCrate ./omniglot;
+            }
+          );
+
+          omniglot-example-add = craneLib.buildPackage (
+            individualCrateArgs
+            // {
+              inherit cargoArtifacts;
+              pname = "omniglot-example-add";
+              cargoExtraArgs = "-p omniglot-example-add";
+              src = fileSetForCrate ./examples/add;
             }
           );
         };
@@ -76,16 +140,29 @@
               rustfmt = stableRustToolchain;
             }
           )) ./treefmt.nix).config.build;
+
+        flakePackageSetForRustToolchain = rustToolchain: rec {
+          default = omniglot;
+          inherit (rustPackagesForRustToolchain rustToolchain)
+            omniglot
+            omniglot-example-add
+            ;
+        };
+
       in
       rec {
-        packages.default = (rustPackagesForToolchain stableRustToolchain).omniglot;
+        packages = flakePackageSetForRustToolchain stableRustToolchain;
 
-        # Check formatting and build all packages:
+        # Check formatting and build all packages for both stable Rust and MSRV:
         checks = {
-          omniglot-msrv = (rustPackagesForToolchain msrvRustToolchain).omniglot;
-          omniglot-stable = (rustPackagesForToolchain stableRustToolchain).omniglot;
           formatting = treefmt.check self;
-        };
+        }
+        // (lib.mapAttrs' (n: v: lib.nameValuePair "${n}-stable" v) (
+          flakePackageSetForRustToolchain msrvRustToolchain
+        ))
+        // (lib.mapAttrs' (n: v: lib.nameValuePair "${n}-msrv" v) (
+          flakePackageSetForRustToolchain msrvRustToolchain
+        ));
 
         formatter = treefmt.wrapper;
 
