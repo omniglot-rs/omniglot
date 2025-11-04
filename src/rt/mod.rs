@@ -70,7 +70,7 @@ pub unsafe trait OGRuntime {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         f: F,
-    ) -> R;
+    ) -> OGResult<R>;
 
     fn allocate_stacked_untracked_mut<F, R>(
         &self,

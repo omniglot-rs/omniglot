@@ -512,19 +512,10 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
         alloc_scope: &mut AllocScope<'_, Self::AllocTracker<'_>, Self::ID>,
         access_scope: &mut AccessScope<Self::ID>,
         f: F,
-    ) -> R {
-        if self.id_imprint != alloc_scope.id_imprint()
-            || self.id_imprint != access_scope.id_imprint()
-        {
-            panic!(
-                "ID mismatch! Rt: {:?}, AllocScope: {:?}, AccessScope: {:?}",
-                self.id_imprint,
-                alloc_scope.id_imprint(),
-                access_scope.id_imprint(),
-            );
-        }
+    ) -> OGResult<R> {
+        self.id_imprint_check(Some(alloc_scope), Some(access_scope))?;
 
-        f()
+        Ok(f())
     }
 
     fn allocate_stacked_untracked_mut<F, R>(
