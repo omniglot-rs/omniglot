@@ -35,7 +35,10 @@ pub unsafe trait OGRuntime {
         symbol_table: &'static [&'static core::ffi::CStr; SYMTAB_SIZE],
         fixed_offset_symbol_table: &'static [Option<&'static core::ffi::CStr>;
                      FIXED_OFFSET_SYMTAB_SIZE],
-    ) -> Option<Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>>;
+    ) -> Result<
+        Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
+        Option<&'static core::ffi::CStr>,
+    >;
 
     fn lookup_symbol<const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>(
         &self,

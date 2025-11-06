@@ -452,8 +452,11 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
         &self,
         _symbol_table: &'static [&'static CStr; SYMTAB_SIZE],
         _fixed_offset_symbol_table: &'static [Option<&'static CStr>; FIXED_OFFSET_SYMTAB_SIZE],
-    ) -> Option<Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>> {
-        Some(())
+    ) -> Result<
+        Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
+        Option<&'static core::ffi::CStr>,
+    > {
+        Ok(())
     }
 
     fn lookup_symbol<const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>(
