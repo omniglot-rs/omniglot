@@ -42,6 +42,10 @@ pub enum OGError {
     /// as a zero-length allocation).
     AllocInvalidLayout,
 
+    /// The Omniglot runtime could not allocate the callback due to an
+    /// insufficient number of callback slots.
+    SetupCallbackInsufficientSlots,
+
     /// The operation could not be completed, as there is a mismatch between the
     /// IDs of different Omniglot runtime components.
     ///
