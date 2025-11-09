@@ -14,6 +14,7 @@ use crate::{OGError, OGResult};
 
 pub trait CallbackContext {
     fn get_argument_register(&self, reg: usize) -> Option<usize>;
+    fn get_stack_pointer(&self) -> *mut core::ffi::c_void;
 }
 
 pub trait CallbackReturn {

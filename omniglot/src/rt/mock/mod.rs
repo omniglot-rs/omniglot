@@ -36,6 +36,10 @@ impl CallbackContext for MockRtCallbackContext {
     fn get_argument_register(&self, reg: usize) -> Option<usize> {
         self.arg_regs.get(reg).copied()
     }
+
+    fn get_stack_pointer(&self) -> *mut c_void {
+        unimplemented!()
+    }
 }
 
 #[derive(Debug, Clone)]
