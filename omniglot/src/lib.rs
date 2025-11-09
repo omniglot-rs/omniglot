@@ -54,6 +54,9 @@ pub enum OGError {
     /// different Omniglot runtime instance. Marker types must always be used
     /// with the exact Omniglot instance alongside which they were created.
     IDMismatch,
+
+    /// A stack overflow occurred in the foreign library.
+    StackOverflow,
 }
 
 pub type OGResult<T> = Result<T, OGError>;
