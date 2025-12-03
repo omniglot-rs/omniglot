@@ -57,6 +57,10 @@ pub enum OGError {
 
     /// A stack overflow occurred in the foreign library.
     StackOverflow,
+
+    /// The runtime failed to find a symbol to be exposed by the
+    /// foreign library.
+    SymbolNotFound,
 }
 
 pub type OGResult<T> = Result<T, OGError>;
