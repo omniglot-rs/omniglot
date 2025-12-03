@@ -68,17 +68,20 @@ pub mod runtime;
 /// An [`OGID`] must never be able to be duplicated, i.e., it must be an
 /// `affine` type.
 ///
-/// The [`OGID::get_imprint`] method can be used to obtain an "imprint" of this
-/// ID instance, which is not subject to those same constraints: it can be
+/// The [`OGID::get_imprint`] method can be used to obtain an [`OGImprint`] of
+/// this ID instance, which is not subject to those same constraints: it can be
 /// freely duplicated. However, the follwing constraints must hold:
 ///
 /// - for any [`OGID`] instance `A` and any two imprints of `A` `a_1` and `a_2`,
 /// `a_1 == a_2`.
 ///
-/// - for any [`OGID`] instance `A`, and imprint of `A` `a`, and a different
-///   [`OGID`] instance `B` with an imprint of `B` `b`, `a != b`.
+/// - for any [`OGID`] instance `A`, and imprint of `A` `a`, and a
+///   different [`OGID`] instance `B` with an imprint of `B` `b`,
+///   where the type of `A` and `B` is identical, `a != b`.
 ///
-///
+/// As such, comparing two [`OGImprint`]s originating from the same [`OGID`]
+/// type indicates whether they originate from the same [`OGID`] instance. It
+/// does not make sense to compare imprints originating from disparate [`OGID`]s.
 ///
 /// Implementations of this trait can satisfy these constraints two one of two
 /// ways:
@@ -93,16 +96,12 @@ pub mod runtime;
 ///   [`OGID`], they must maintain the above equality relations by comparing
 ///   runtime-available state.
 pub unsafe trait OGID: Debug {
-    type Imprint: OGIDImprint + Debug + Copy + Clone + Eq + PartialEq + PartialOrd;
+    type Imprint: OGIDImprint;
 
     fn get_imprint(&self) -> Self::Imprint;
 }
 
-pub unsafe trait OGIDImprint {
-    /// Return a numeric ID that unique identifies this Imprint's originating
-    /// [`OGID`]'s instance among other instances of that same [`OGID`] type.
-    ///
-    /// [`OGID`]s that guarantee singleton-type uniqueness can return any fixed
-    /// number here.
-    fn numeric_id(&self) -> u64;
+pub unsafe trait OGIDImprint:
+    Debug + Copy + Clone + Eq + PartialEq + PartialOrd + 'static
+{
 }

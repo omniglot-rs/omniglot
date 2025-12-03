@@ -18,40 +18,47 @@ use super::{OGID, OGIDImprint};
 /// });
 /// ```
 #[derive(Debug)]
-pub struct OGLifetimeBranding<'id>(PhantomData<Cell<&'id ()>>);
+pub struct OGLifetimeBranding<'id> {
+    /// Make struct invariant over `'id` lifetime
+    _inv_lt: PhantomData<Cell<&'id ()>>,
+    /// Prevent this struct from being constructed outside of this module
+    _private: (),
+}
 
 impl OGLifetimeBranding<'_> {
     #[inline(always)]
     pub fn new<R>(f: impl for<'new_id> FnOnce(OGLifetimeBranding<'new_id>) -> R) -> R {
-        f(OGLifetimeBranding(PhantomData))
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialOrd)]
-pub struct OGLifetimeBrandingImprint<'id>(PhantomData<Cell<&'id ()>>);
-
-unsafe impl<'id> OGIDImprint for OGLifetimeBrandingImprint<'id> {
-    fn numeric_id(&self) -> u64 {
-        0_u64
-    }
-}
-
-impl<'id> PartialEq<OGLifetimeBrandingImprint<'id>> for OGLifetimeBrandingImprint<'id> {
-    fn eq(&self, _rhs: &OGLifetimeBrandingImprint<'id>) -> bool {
-        // Imprint is invariant over the `'id` lifetime. Thus, the fact that
-        // we're provided two types with identical lifetimes means that the
-        // imprint must have been issued from the same branded lifetime, no
-        // runtime check required:
-        true
+        f(OGLifetimeBranding {
+            _inv_lt: PhantomData,
+            _private: (),
+        })
     }
 }
 
 unsafe impl<'id> OGID for OGLifetimeBranding<'id> {
-    type Imprint = OGLifetimeBrandingImprint<'id>;
+    type Imprint = OGLifetimeBrandingImprint;
 
     #[inline(always)]
     fn get_imprint(&self) -> Self::Imprint {
-        OGLifetimeBrandingImprint(PhantomData)
+        OGLifetimeBrandingImprint { _private: () }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialOrd)]
+pub struct OGLifetimeBrandingImprint {
+    /// Prevent this struct from being constructed outside of this module
+    _private: (),
+}
+unsafe impl OGIDImprint for OGLifetimeBrandingImprint {}
+
+impl PartialEq<OGLifetimeBrandingImprint> for OGLifetimeBrandingImprint {
+    fn eq(&self, _rhs: &OGLifetimeBrandingImprint) -> bool {
+        // [`OGLifetimeBranding`] is invariant over its `'id` lifetime. Thus,
+        // the fact that we're provided two imprints that the caller claims to
+        // have originated from the same [`OGLifetimeBranding`] type means that
+        // the imprint must have been issued from the same branded lifetime, no
+        // runtime check required:
+        true
     }
 }
 
