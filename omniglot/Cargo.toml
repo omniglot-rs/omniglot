@@ -6,6 +6,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [features]
+default = ["std", "runtime_id"]
+
 # Enable features only available with full standard library support. This
 # includes:
 # - a heap allocator backend for MockRt (useful for platforms that don't have
