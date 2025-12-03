@@ -29,23 +29,22 @@ pub unsafe trait OGRuntime {
     type CallbackContext: CallbackContext + core::fmt::Debug + Clone;
     type CallbackReturn: CallbackReturn + core::fmt::Debug + Clone;
 
-    type SymbolTableState<const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>;
+    type SymbolTableState<'a, const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>;
 
-    fn resolve_symbols<const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>(
+    fn resolve_symbols<'a, const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>(
         &self,
-        symbol_table: &'static [&'static core::ffi::CStr; SYMTAB_SIZE],
-        fixed_offset_symbol_table: &'static [Option<&'static core::ffi::CStr>;
-                     FIXED_OFFSET_SYMTAB_SIZE],
+        symbol_table: &'a [&'a core::ffi::CStr; SYMTAB_SIZE],
+        fixed_offset_symbol_table: &'a [Option<&'a core::ffi::CStr>; FIXED_OFFSET_SYMTAB_SIZE],
     ) -> Result<
-        Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
-        Option<&'static core::ffi::CStr>,
+        Self::SymbolTableState<'a, SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
+        Option<&'a core::ffi::CStr>,
     >;
 
     fn lookup_symbol<const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>(
         &self,
         compact_symtab_index: usize,
         fixed_offset_symtab_index: usize,
-        symtabstate: &Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
+        symtabstate: &Self::SymbolTableState<'_, SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
     ) -> Option<*const ()>;
 
     fn setup_callback<C, F, R>(

@@ -450,15 +450,15 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
     type CallbackContext = MockRtCallbackContext;
     type CallbackReturn = MockRtCallbackReturn;
 
-    type SymbolTableState<const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize> = ();
+    type SymbolTableState<'a, const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize> = ();
 
-    fn resolve_symbols<const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>(
+    fn resolve_symbols<'a, const SYMTAB_SIZE: usize, const FIXED_OFFSET_SYMTAB_SIZE: usize>(
         &self,
-        _symbol_table: &'static [&'static CStr; SYMTAB_SIZE],
-        _fixed_offset_symbol_table: &'static [Option<&'static CStr>; FIXED_OFFSET_SYMTAB_SIZE],
+        _symbol_table: &'a [&'a CStr; SYMTAB_SIZE],
+        _fixed_offset_symbol_table: &'a [Option<&'a CStr>; FIXED_OFFSET_SYMTAB_SIZE],
     ) -> Result<
-        Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
-        Option<&'static core::ffi::CStr>,
+        Self::SymbolTableState<'a, SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
+        Option<&'a core::ffi::CStr>,
     > {
         Ok(())
     }
@@ -467,7 +467,7 @@ unsafe impl<ID: OGID, A: MockRtAllocator> OGRuntime for MockRt<ID, A> {
         &self,
         _compact_symtab_index: usize,
         _fixed_offset_symtab_index: usize,
-        _symtabstate: &Self::SymbolTableState<SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
+        _symtabstate: &Self::SymbolTableState<'_, SYMTAB_SIZE, FIXED_OFFSET_SYMTAB_SIZE>,
     ) -> Option<*const ()> {
         None
     }
