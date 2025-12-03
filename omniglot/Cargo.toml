@@ -37,5 +37,24 @@ unsound = []
 disable_upgrade_checks = []
 disable_validation_checks = []
 
+# Turning on this feature enables an optimization where OG* references created
+# against a given `AllocScope` reference can outlive the lifetime of that
+# `AllocScope` reference, and instead only be bound to the lifetime of the
+# closure by which this new `AllocScope` was issued (described in the OSDI'25
+# paper at the end of section 4.4).
+#
+# This optimization relies on the fact that the host has exclusive control over
+# the memory regions accessible to foreign code, and is able to dereference any
+# memory accessible to foreign code. When enabling "foreign code protection"
+# (where a library can itself govern which regions in its memory it wants host
+# code to have access to), this optimization does not work: any call into the
+# library may invalidate any prior OG* references.
+#
+# Thus, runtimes that implement such "foreign code protection" must only make
+# that mode available when this feature is not enabled. They can query whether
+# it is enabled using the `omniglot::ALLOC_SCOPE_SEPARATE_ACTIVE_VALID_LT`
+# public constant.
+alloc_scope_separate_active_valid_lt = []
+
 [dependencies]
 seq-macro = "0.3.6"

@@ -4,7 +4,7 @@ use core::mem::MaybeUninit;
 use crate::alloc_tracker::AllocTracker;
 use crate::bit_pattern_validate::BitPatternValidate;
 use crate::id::OGID;
-use crate::markers::{AccessScope, AllocScope};
+use crate::markers::AccessScope;
 
 use super::og_slice::OGSlice;
 use super::og_slice_val::OGSliceVal;
@@ -43,7 +43,7 @@ impl<'alloc, ID: OGID, T: 'static> OGMutSlice<'alloc, ID, T> {
     pub fn upgrade_from_ptr<R: AllocTracker>(
         ptr: *mut T,
         length: usize,
-        alloc_scope: &AllocScope<'alloc, R, ID>,
+        alloc_scope: super::UpgradeAllocScopeTy<'_, 'alloc, R, ID>,
     ) -> Option<OGMutSlice<'alloc, ID, T>> {
         if DISABLE_UPGRADE_CHECKS {
             Some(unsafe { Self::upgrade_from_ptr_unchecked(ptr, length, alloc_scope.id_imprint()) })

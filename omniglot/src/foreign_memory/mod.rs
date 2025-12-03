@@ -24,3 +24,12 @@ compile_error!(
     "Must enable feature \"unsound\" when enabling feature \"disable_validation_checks\""
 );
 const DISABLE_VALIDATION_CHECKS: bool = cfg!(feature = "disable_validation_checks");
+
+// The type of `AllocScope` accepted for `upgrade` methods. Depending on whether
+// the `alloc_scope_separate_active_valid_lt` feature is enabled, we either bind
+// {OGRef,OGMutRef} references only to the "valid" lifetime of the `AllocScope`,
+// or both the "active" and "valid" lifetimes:
+#[cfg(feature = "alloc_scope_separate_active_valid_lt")]
+type UpgradeAllocScopeTy<'anon, 'alloc, R, ID> = &'anon crate::markers::AllocScope<'alloc, R, ID>;
+#[cfg(not(feature = "alloc_scope_separate_active_valid_lt"))]
+type UpgradeAllocScopeTy<'anon, 'alloc, R, ID> = &'alloc crate::markers::AllocScope<'alloc, R, ID>;

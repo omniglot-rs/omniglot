@@ -21,6 +21,14 @@ pub mod rt;
 // Internal modules:
 mod util;
 
+/// Whether this crate has the `alloc_scope_separate_active_valid_lt`
+/// feature enabled.
+///
+/// See the documentation of this feature in `Cargo.toml` for more
+/// information.
+pub const ALLOC_SCOPE_SEPARATE_ACTIVE_VALID_LT: bool =
+    cfg!(feature = "alloc_scope_separate_active_valid_lt");
+
 /// Shared Omniglot error type
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OGError {
