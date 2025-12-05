@@ -2,7 +2,6 @@ use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 use core::ops::Deref;
 
-use crate::bit_pattern_validate::BitPatternValidate;
 use crate::id::OGID;
 
 pub struct OGSliceVal<'alloc, 'access, ID: OGID, T: 'static> {
@@ -21,7 +20,7 @@ impl<'alloc, 'access, ID: OGID, T: 'static> OGSliceVal<'alloc, 'access, ID, T> {
     }
 }
 
-impl<'alloc, 'access, ID: OGID, T: BitPatternValidate + 'static> Deref
+impl<'alloc, 'access, ID: OGID, T: 'static> Deref
     for OGSliceVal<'alloc, 'access, ID, T>
 {
     type Target = [T];
