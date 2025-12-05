@@ -96,7 +96,7 @@ impl<'alloc, ID: OGID, T: 'static> OGMutSlice<'alloc, ID, T> {
         // TODO
         unsafe {
             OGSliceVal::new(
-                core::mem::transmute::<&[UnsafeCell<MaybeUninit<T>>], &[MaybeUninit<T>]>(&self.r),
+                core::mem::transmute::<&[UnsafeCell<MaybeUninit<T>>], &[T]>(&self.r),
                 self.id_imprint,
             )
         }
