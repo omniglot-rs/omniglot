@@ -15,12 +15,12 @@ use super::{DISABLE_UPGRADE_CHECKS, DISABLE_VALIDATION_CHECKS};
 
 // A reference which is validated to be well-aligned and contained in
 // mutably-accessible memory.
-pub struct OGMutRef<'alloc, ID: OGID, T: 'static> {
+pub struct OGMutRef<'alloc, ID: OGID, T> {
     pub(crate) r: &'alloc UnsafeCell<MaybeUninit<T>>,
     id_imprint: ID::Imprint,
 }
 
-impl<'alloc, ID: OGID, T: 'static> OGMutRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> OGMutRef<'alloc, ID, T> {
     pub(crate) unsafe fn new(
         r: &'alloc UnsafeCell<MaybeUninit<T>>,
         id_imprint: ID::Imprint,
@@ -33,15 +33,15 @@ impl<'alloc, ID: OGID, T: 'static> OGMutRef<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: 'static> Clone for OGMutRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> Clone for OGMutRef<'alloc, ID, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'alloc, ID: OGID, T: 'static> Copy for OGMutRef<'alloc, ID, T> {}
+impl<'alloc, ID: OGID, T> Copy for OGMutRef<'alloc, ID, T> {}
 
-impl<'alloc, ID: OGID, T: BitPatternValidate + 'static> OGMutRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: BitPatternValidate> OGMutRef<'alloc, ID, T> {
     pub fn validate<'access>(
         &self,
         access_scope: &'access AccessScope<ID>,
@@ -70,7 +70,7 @@ impl<'alloc, ID: OGID, T: BitPatternValidate + 'static> OGMutRef<'alloc, ID, T> 
     }
 }
 
-impl<'alloc, ID: OGID, T: 'static> OGMutRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> OGMutRef<'alloc, ID, T> {
     pub unsafe fn upgrade_from_ptr_unchecked(
         ptr: *mut T,
         id_imprint: ID::Imprint,
@@ -118,7 +118,7 @@ impl<'alloc, ID: OGID, T: 'static> OGMutRef<'alloc, ID, T> {
         unsafe { OGVal::new(&*(self.r as *const _ as *const T), self.id_imprint) }
     }
 
-    pub unsafe fn sub_ref_unchecked<U: 'static>(
+    pub unsafe fn sub_ref_unchecked<U>(
         self,
         byte_offset: usize,
     ) -> OGMutRef<'alloc, ID, U> {
@@ -203,7 +203,7 @@ impl<'alloc, ID: OGID, T: 'static> OGMutRef<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: Copy + 'static> OGMutRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: Copy> OGMutRef<'alloc, ID, T> {
     pub fn write_ref<'access>(
         &self,
         val: &T,
@@ -234,7 +234,7 @@ impl<'alloc, ID: OGID, T: Copy + 'static> OGMutRef<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, const N: usize, ID: OGID, T: 'static> OGMutRef<'alloc, ID, [T; N]> {
+impl<'alloc, const N: usize, ID: OGID, T> OGMutRef<'alloc, ID, [T; N]> {
     pub fn len(&self) -> usize {
         N
     }
@@ -269,7 +269,7 @@ impl<'alloc, const N: usize, ID: OGID, T: 'static> OGMutRef<'alloc, ID, [T; N]> 
     }
 }
 
-impl<'alloc, const N: usize, ID: OGID, T: 'static + Copy> OGMutRef<'alloc, ID, [T; N]> {
+impl<'alloc, const N: usize, ID: OGID, T: Copy> OGMutRef<'alloc, ID, [T; N]> {
     pub fn copy_from_slice<'access>(&self, src: &[T], access_scope: &'access mut AccessScope<ID>) {
         if self.id_imprint != access_scope.id_imprint() {
             panic!(
@@ -295,12 +295,12 @@ impl<'alloc, const N: usize, ID: OGID, T: 'static + Copy> OGMutRef<'alloc, ID, [
     }
 }
 
-pub struct OGMutRefIter<'alloc, ID: OGID, const N: usize, T: 'static> {
+pub struct OGMutRefIter<'alloc, ID: OGID, const N: usize, T> {
     inner: OGMutRef<'alloc, ID, [T; N]>,
     idx: usize,
 }
 
-impl<'alloc, ID: OGID, const N: usize, T: 'static> core::iter::Iterator
+impl<'alloc, ID: OGID, const N: usize, T> core::iter::Iterator
     for OGMutRefIter<'alloc, ID, N, T>
 {
     type Item = OGMutRef<'alloc, ID, T>;

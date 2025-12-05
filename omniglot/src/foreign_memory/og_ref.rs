@@ -16,20 +16,20 @@ use crate::util::as_ref_unchecked::as_ref_unchecked;
 // A reference which is validated to be well-aligned and contained in
 // (im)mutably-accessible memory. It may still be mutable by foreign code, and
 // hence we assume interior mutability here:
-pub struct OGRef<'alloc, ID: OGID, T: 'static> {
+pub struct OGRef<'alloc, ID: OGID, T> {
     pub(crate) r: &'alloc UnsafeCell<MaybeUninit<T>>,
     id_imprint: ID::Imprint,
 }
 
-impl<'alloc, ID: OGID, T: 'static> Clone for OGRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> Clone for OGRef<'alloc, ID, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'alloc, ID: OGID, T: 'static> Copy for OGRef<'alloc, ID, T> {}
+impl<'alloc, ID: OGID, T> Copy for OGRef<'alloc, ID, T> {}
 
-impl<'alloc, ID: OGID, T: 'static> OGRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> OGRef<'alloc, ID, T> {
     pub(crate) unsafe fn new(
         r: &'alloc UnsafeCell<MaybeUninit<T>>,
         id_imprint: ID::Imprint,
@@ -110,7 +110,7 @@ impl<'alloc, ID: OGID, T: 'static> OGRef<'alloc, ID, T> {
         self.id_imprint
     }
 
-    pub unsafe fn sub_ref_unchecked<U: 'static>(self, byte_offset: usize) -> OGRef<'alloc, ID, U> {
+    pub unsafe fn sub_ref_unchecked<U>(self, byte_offset: usize) -> OGRef<'alloc, ID, U> {
         OGRef {
             r: unsafe {
                 &*((self.r as *const UnsafeCell<MaybeUninit<T>>).byte_add(byte_offset)
@@ -121,7 +121,7 @@ impl<'alloc, ID: OGID, T: 'static> OGRef<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: BitPatternValidate + 'static> OGRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: BitPatternValidate> OGRef<'alloc, ID, T> {
     pub fn validate<'access>(
         &self,
         access_scope: &'access AccessScope<ID>,
@@ -150,7 +150,7 @@ impl<'alloc, ID: OGID, T: BitPatternValidate + 'static> OGRef<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, const N: usize, ID: OGID, T: 'static> OGRef<'alloc, ID, [T; N]> {
+impl<'alloc, const N: usize, ID: OGID, T> OGRef<'alloc, ID, [T; N]> {
     pub fn len(&self) -> usize {
         N
     }
@@ -197,12 +197,12 @@ impl<'alloc, const N: usize, ID: OGID, T: 'static> OGRef<'alloc, ID, [T; N]> {
     }
 }
 
-pub struct OGRefIter<'alloc, ID: OGID, const N: usize, T: 'static> {
+pub struct OGRefIter<'alloc, ID: OGID, const N: usize, T> {
     inner: OGRef<'alloc, ID, [T; N]>,
     idx: usize,
 }
 
-impl<'alloc, ID: OGID, const N: usize, T: 'static> core::iter::Iterator
+impl<'alloc, ID: OGID, const N: usize, T> core::iter::Iterator
     for OGRefIter<'alloc, ID, N, T>
 {
     type Item = OGRef<'alloc, ID, T>;

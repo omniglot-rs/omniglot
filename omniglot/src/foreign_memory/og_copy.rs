@@ -12,9 +12,9 @@ use crate::util::maybe_uninit_as_bytes;
 
 // An owned copy from some unvalidated foreign memory
 #[repr(transparent)]
-pub struct OGCopy<T: 'static>(pub(crate) MaybeUninit<T>);
+pub struct OGCopy<T>(pub(crate) MaybeUninit<T>);
 
-impl<T: 'static> core::fmt::Debug for OGCopy<T> {
+impl<T> core::fmt::Debug for OGCopy<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.pad(core::any::type_name::<Self>())
     }
@@ -22,7 +22,7 @@ impl<T: 'static> core::fmt::Debug for OGCopy<T> {
 
 // Need to manually implement Clone, Rust won't derive it automatically because
 // not necessarily T: Clone.
-impl<T: 'static> Clone for OGCopy<T> {
+impl<T> Clone for OGCopy<T> {
     fn clone(&self) -> Self {
         // Do a safe byte-wise copy of the MaybeUninit. It does not necessarily
         // implement Copy. However, we only support dereferencing it after being
@@ -35,13 +35,13 @@ impl<T: 'static> Clone for OGCopy<T> {
     }
 }
 
-impl<T: 'static> From<MaybeUninit<T>> for OGCopy<T> {
+impl<T> From<MaybeUninit<T>> for OGCopy<T> {
     fn from(from: MaybeUninit<T>) -> Self {
         OGCopy(from)
     }
 }
 
-impl<T: 'static> OGCopy<T> {
+impl<T> OGCopy<T> {
     pub fn new(val: T) -> Self {
         OGCopy(MaybeUninit::new(val))
     }
@@ -102,7 +102,7 @@ impl<T: 'static> OGCopy<T> {
     }
 }
 
-impl<T: BitPatternValidate + 'static> OGCopy<T> {
+impl<T: BitPatternValidate> OGCopy<T> {
     pub fn validate(self) -> Result<T, Self> {
         if DISABLE_VALIDATION_CHECKS {
             Ok(unsafe { self.assume_valid() })

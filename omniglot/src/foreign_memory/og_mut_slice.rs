@@ -10,14 +10,14 @@ use super::og_slice::OGSlice;
 use super::og_slice_val::OGSliceVal;
 use super::{DISABLE_UPGRADE_CHECKS, DISABLE_VALIDATION_CHECKS};
 
-pub struct OGMutSlice<'alloc, ID: OGID, T: 'static> {
+pub struct OGMutSlice<'alloc, ID: OGID, T> {
     // The length of this slice is encoded in the reference itself (fat
     // pointer), and not located in / accessible to foreign memory:
     pub r: &'alloc [UnsafeCell<MaybeUninit<T>>],
     id_imprint: ID::Imprint,
 }
 
-impl<'alloc, ID: OGID, T: 'static> OGMutSlice<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> OGMutSlice<'alloc, ID, T> {
     pub unsafe fn upgrade_from_ptr_unchecked(
         ptr: *mut T,
         length: usize,
@@ -146,7 +146,7 @@ impl<'alloc, ID: OGID, T: 'static> OGMutSlice<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: BitPatternValidate + 'static> OGMutSlice<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: BitPatternValidate> OGMutSlice<'alloc, ID, T> {
     pub fn validate<'access>(
         &self,
         access_scope: &'access AccessScope<ID>,
@@ -179,7 +179,7 @@ impl<'alloc, ID: OGID, T: BitPatternValidate + 'static> OGMutSlice<'alloc, ID, T
     }
 }
 
-impl<'alloc, ID: OGID, T: Copy + 'static> OGMutSlice<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: Copy> OGMutSlice<'alloc, ID, T> {
     pub fn copy_from_slice<'access>(
         &self,
         src: &[T],

@@ -11,22 +11,22 @@ use super::og_slice_val::OGSliceVal;
 use super::og_val::OGVal;
 use super::{DISABLE_UPGRADE_CHECKS, DISABLE_VALIDATION_CHECKS};
 
-pub struct OGSlice<'alloc, ID: OGID, T: 'static> {
+pub struct OGSlice<'alloc, ID: OGID, T> {
     // The length of this slice is encoded in the reference itself (fat
     // pointer), and not located in / accessible to foreign memory:
     pub r: &'alloc [UnsafeCell<MaybeUninit<T>>],
     id_imprint: ID::Imprint,
 }
 
-impl<'alloc, ID: OGID, T: 'static> Clone for OGSlice<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> Clone for OGSlice<'alloc, ID, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'alloc, ID: OGID, T: 'static> Copy for OGSlice<'alloc, ID, T> {}
+impl<'alloc, ID: OGID, T> Copy for OGSlice<'alloc, ID, T> {}
 
-impl<'alloc, ID: OGID, T: 'static> OGSlice<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> OGSlice<'alloc, ID, T> {
     pub(crate) unsafe fn new(
         r: &'alloc [UnsafeCell<MaybeUninit<T>>],
         id_imprint: ID::Imprint,
@@ -138,7 +138,7 @@ impl<'alloc, ID: OGID, T: 'static> OGSlice<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: BitPatternValidate + 'static> OGSlice<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: BitPatternValidate> OGSlice<'alloc, ID, T> {
     pub fn validate<'access>(
         &self,
         access_scope: &'access AccessScope<ID>,
@@ -201,12 +201,12 @@ impl<'alloc, ID: OGID> OGSlice<'alloc, ID, u8> {
     }
 }
 
-pub struct OGSliceIter<'alloc, ID: OGID, T: 'static> {
+pub struct OGSliceIter<'alloc, ID: OGID, T> {
     inner: OGSlice<'alloc, ID, T>,
     idx: usize,
 }
 
-impl<'alloc, ID: OGID, T: 'static> core::iter::Iterator for OGSliceIter<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T> core::iter::Iterator for OGSliceIter<'alloc, ID, T> {
     type Item = OGRef<'alloc, ID, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
