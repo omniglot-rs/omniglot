@@ -46,6 +46,9 @@
 
         stableRustToolchain = fenix.packages."${system}".stable.withComponents rustToolchainComponents;
 
+        # Useful for running `compile_fail` doctests with specific error numbers:
+        nightlyRustToolchain = fenix.packages."${system}".default.withComponents rustToolchainComponents;
+
         rustPackagesForRustToolchain = rustToolchain: rec {
           craneLib = (crane.mkLib pkgs).overrideToolchain (_p: rustToolchain);
 
@@ -139,6 +142,18 @@
               ];
             }
           );
+
+          # Run tests with cargo-nextest. We set `doCheck = false` on
+          # other crate derivations so we do not the tests twice.
+          omniglot-workspace-tests = craneLib.cargoTest (
+            exampleCrateArgs
+            // {
+              inherit cargoArtifacts;
+              partitions = 1;
+              partitionType = "count";
+              cargoNextestPartitionsExtraArgs = "--no-tests=pass";
+            }
+          );
         };
 
         treefmt =
@@ -148,27 +163,37 @@
             }
           )) ./treefmt.nix).config.build;
 
-        flakePackageSetForRustToolchain = rustToolchain: rec {
-          default = omniglot;
-          inherit (rustPackagesForRustToolchain rustToolchain)
-            omniglot
-            omniglot-example-add
-            ;
-        };
+        flakePackageSetForRustToolchain =
+          checkTargets: rustToolchain:
+          rec {
+            default = omniglot;
+            inherit (rustPackagesForRustToolchain rustToolchain)
+              omniglot
+              omniglot-example-add
+              ;
+          }
+          // lib.optionalAttrs checkTargets {
+            inherit (rustPackagesForRustToolchain rustToolchain)
+              omniglot-workspace-tests
+              ;
+          };
 
       in
       rec {
-        packages = flakePackageSetForRustToolchain stableRustToolchain;
+        packages = flakePackageSetForRustToolchain false stableRustToolchain;
 
         # Check formatting and build all packages for both stable Rust and MSRV:
         checks = {
           formatting = treefmt.check self;
         }
         // (lib.mapAttrs' (n: v: lib.nameValuePair "${n}-stable" v) (
-          flakePackageSetForRustToolchain stableRustToolchain
+          flakePackageSetForRustToolchain true stableRustToolchain
         ))
         // (lib.mapAttrs' (n: v: lib.nameValuePair "${n}-msrv" v) (
-          flakePackageSetForRustToolchain msrvRustToolchain
+          flakePackageSetForRustToolchain true msrvRustToolchain
+        ))
+        // (lib.mapAttrs' (n: v: lib.nameValuePair "${n}-nightly" v) (
+          flakePackageSetForRustToolchain true nightlyRustToolchain
         ));
 
         formatter = treefmt.wrapper;
