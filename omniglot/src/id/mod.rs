@@ -3,9 +3,11 @@
 //! Omniglot-instance IDs.
 //!
 //! Omiglot enforces many of its safety invariants by issuing affine marker type
-//! instances ([`AllocScope`], [`AccessScope`]), which are used to construct a
+//! instances ([`AllocScope`](crate::markers::AllocScope),
+//! [`AccessScope`](crate::markers::AccessScope)), which are used to construct a
 //! form of compile-time mutual exclusion (like ensuring that foreign memory is
-//! not modified while dereferencable references like an [`OGVal`] exist to it).
+//! not modified while dereferencable references like an
+//! [`OGVal`](crate::foreign_memory::og_val::OGVal) exist to it).
 //!
 //! However, for this to work, it is important that each Omniglot runtime issues
 //! only a single such instance of each marker type, and that only this instance
@@ -29,17 +31,19 @@
 //!     type is only ever used once for instantiating an Omniglot runtime.
 //!
 //!   - Users can use lifetime-branded IDs through the provided
-//!     [`OGLifetimeBranding`] type. This type can be safely instantiated for an
-//!     anonymous, invariant lifetime `'id` through [`OGLifetimeBranding::new`].
+//!     [`OGLifetimeBranding`](lifetime::OGLifetimeBranding) type. This type can
+//!     be safely instantiated for an anonymous, invariant lifetime `'id`
+//!     through [`OGLifetimeBranding::new`](lifetime::OGLifetimeBranding::new).
 //!     Key to the safety of this function is that no two calls can produce an
-//!     [`OGLifetimeBranding`] generic over lifetimes that can be subtyped by
+//!     `OGLifetimeBranding` generic over lifetimes that can be subtyped by
 //!     another (meaning they are _invariant_). See the GhostCell paper, section
 //!     2.2 [1] for more information.
 //!
 //! - We can safely instantiate multiple Omniglot runtime instances using the
-//!   same [`OGRuntimeBranding`] type, and perform runtime checks to ensure that
-//!   two Omniglot components (such as the runtime and wrappers) have been
-//!   created from the same [`OGRuntimeBranding`] instance.
+//!   same [`OGRuntimeBranding`](runtime::OGRuntimeBranding) type, and perform
+//!   runtime checks to ensure that two Omniglot components (such as the runtime
+//!   and wrappers) have been created from the same
+//!   [`OGRuntimeBranding`](runtime::OGRuntimeBranding) instance.
 //!
 //! While the former approach is very efficient, it can be limiting: because it
 //! forces each Omniglot runtime instance to be generic over a different type,
@@ -47,11 +51,12 @@
 //! result in unwieldy type expressions. In particular, lifetime-branding can be
 //! difficult to program against, as developers can never _name_ the proper
 //! [`OGID`] type, and have to express all functions as generic over any
-//! [`OGLifetimeBranding`] (or any [`OGID`]).
+//! [`OGLifetimeBranding`](lifetime::OGLifetimeBranding) (or any [`OGID`]).
 //!
 //! Esp. when maintaining a thread-pool of different Omniglot instances, it may
 //! be problematic to have each instance be of a different type. In such cases,
-//! developers can use [`OGRuntimeBranding`]s to work around these issues.
+//! developers can use [`OGRuntimeBranding`](runtime::OGRuntimeBranding)s to
+//! work around these issues.
 //!
 //! [1]: https://plv.mpi-sws.org/rustbelt/ghostcell/paper.pdf
 
@@ -70,7 +75,7 @@ pub mod runtime;
 /// An [`OGID`] must never be able to be duplicated, i.e., it must be an
 /// `affine` type.
 ///
-/// The [`OGID::get_imprint`] method can be used to obtain an [`OGImprint`] of
+/// The [`OGID::get_imprint`] method can be used to obtain an [`OGIDImprint`] of
 /// this ID instance, which is not subject to those same constraints: it can be
 /// freely duplicated. However, the follwing constraints must hold:
 ///
@@ -81,9 +86,10 @@ pub mod runtime;
 ///   different [`OGID`] instance `B` with an imprint of `B` `b`,
 ///   where the type of `A` and `B` is identical, `a != b`.
 ///
-/// As such, comparing two [`OGImprint`]s originating from the same [`OGID`]
+/// As such, comparing two [`OGIDImprint`]s originating from the same [`OGID`]
 /// type indicates whether they originate from the same [`OGID`] instance. It
-/// does not make sense to compare imprints originating from disparate [`OGID`]s.
+/// does not make sense to compare imprints originating from disparate
+/// [`OGID`]s.
 ///
 /// Implementations of this trait can satisfy these constraints two one of two
 /// ways:

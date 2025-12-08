@@ -59,10 +59,12 @@ pub enum OGError {
     /// The operation could not be completed, as there is a mismatch between the
     /// IDs of different Omniglot runtime components.
     ///
-    /// Most likely, this error indicates that the supplied [`AllocScope`] or
-    /// [`AccessScope`] marker type is of the expected type, but belongs to a
-    /// different Omniglot runtime instance. Marker types must always be used
-    /// with the exact Omniglot instance alongside which they were created.
+    /// Most likely, this error indicates that the supplied
+    /// [`AllocScope`](markers::AllocScope) or
+    /// [`AccessScope`](markers::AccessScope) marker type is of the expected
+    /// type, but belongs to a different Omniglot runtime instance. Marker types
+    /// must always be used with the exact Omniglot instance alongside which
+    /// they were created.
     IDMismatch,
 
     /// A stack overflow occurred in the foreign library.
