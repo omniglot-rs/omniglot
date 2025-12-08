@@ -4,7 +4,6 @@ use core::cell::UnsafeCell;
 use core::marker::PhantomData;
 
 use crate::alloc_tracker::AllocTracker;
-use crate::bit_pattern_validate::BitPatternValidate;
 use crate::id::OGID;
 use crate::markers::AccessScope;
 use crate::maybe_valid::MaybeValid;
@@ -179,22 +178,24 @@ impl<'alloc, ID: OGID, T> OGSlice<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: BitPatternValidate> OGSlice<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: zerocopy::TryFromBytes + zerocopy::Immutable + zerocopy::KnownLayout>
+    OGSlice<'alloc, ID, T>
+{
     /// Create a readable, dereferencable slice reference over `self.len()`
     /// elements of type `T` to the memory behind this [`OGSlice`].
     ///
-    /// This function takes a shared `AccessScope` reference, ensuring that
+    /// This function takes a shared [`AccessScope`] reference, ensuring that
     /// neither host nor foreign code can concurrently modify any (possibly
     /// aliased) foreign memory for the duration that the returned reference
     /// exists.
     ///
     /// It then checks whether the memory contents of each element in this slice
     /// would constitute a valid instance of type `T`, as determined by
-    /// [`BitPatternValidate`]. If the slice contains at least one element whose
-    /// memory does not contain a valid instance of type `T` (and the unsound
-    /// `disable_validation_checks` crate feature is not enabled), it returns
-    /// None. Otherwise, it returns a dereferencable reference, bound to the
-    /// supplied [`AccessScope`].
+    /// [`zerocopy::TryFromBytes`]. If the slice contains at least one element
+    /// whose memory does not contain a valid instance of type `T` (and the
+    /// unsound `disable_validation_checks` crate feature is not enabled), it
+    /// returns None. Otherwise, it returns a dereferencable reference, bound to
+    /// the supplied [`AccessScope`].
     pub fn validate<'access>(
         &self,
         access_scope: &'access AccessScope<ID>,
@@ -207,10 +208,11 @@ impl<'alloc, ID: OGID, T: BitPatternValidate> OGSlice<'alloc, ID, T> {
             if self
                 .reference
                 .iter()
-                .all(|elem: &UnsafeCell<MaybeValid<T>>| unsafe {
-                    <T as BitPatternValidate>::validate(
-                        elem as *const UnsafeCell<MaybeValid<T>> as *const T,
+                .all(|elem: &UnsafeCell<MaybeValid<T>>| {
+                    <T as zerocopy::TryFromBytes>::try_ref_from_bytes(
+                        unsafe { &*elem.get() }.as_bytes(),
                     )
+                    .is_ok()
                 })
             {
                 Some(unsafe { self.assume_valid(access_scope) })
@@ -218,6 +220,31 @@ impl<'alloc, ID: OGID, T: BitPatternValidate> OGSlice<'alloc, ID, T> {
                 None
             }
         }
+    }
+}
+
+impl<'alloc, ID: OGID, T: zerocopy::FromBytes + zerocopy::Immutable + zerocopy::KnownLayout>
+    OGSlice<'alloc, ID, T>
+{
+    /// Create a readable, dereferencable slice reference over `self.len()`
+    /// elements of type `T` to the memory behind this [`OGSlice`].
+    ///
+    /// This function takes a shared [`AccessScope`] reference, ensuring that
+    /// neither host nor foreign code can concurrently modify any (possibly
+    /// aliased) foreign memory for the duration that the returned reference
+    /// exists.
+    ///
+    /// Because of the trait bound of [`zerocopy::FromBytes`], we know that
+    /// every bit pattern underneath this reference is a valid value for type
+    /// `T`. As such, this conversion is infallible.
+    pub fn valid<'access>(
+        &self,
+        access_scope: &'access AccessScope<ID>,
+    ) -> OGVal<'alloc, 'access, ID, [T]> {
+        // Every bit-pattern of every element of this slice reference is a valid
+        // instance of T, so we can safely call `assume_valid`. This function
+        // also checks the access scope imprint:
+        unsafe { self.assume_valid(access_scope) }
     }
 }
 

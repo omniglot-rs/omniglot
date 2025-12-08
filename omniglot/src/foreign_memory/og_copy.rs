@@ -1,6 +1,5 @@
 // -*- fill-column: 80; -*-
 
-use crate::bit_pattern_validate::BitPatternValidate;
 use crate::maybe_valid::MaybeValid;
 
 // use super::og_mut_ref::OGMutRef;
@@ -22,13 +21,6 @@ pub struct OGCopy<T> {
 }
 
 impl<T> OGCopy<T> {
-    /// Create a new `OGCopy` from a valid instance of type `T`.
-    pub fn new(val: T) -> Self {
-        OGCopy {
-            inner: MaybeValid::new(val),
-        }
-    }
-
     /// Create a new `OGCopy` with zero-initialized contents.
     pub fn zeroed() -> Self {
         OGCopy {
@@ -57,6 +49,18 @@ impl<T> OGCopy<T> {
     }
 }
 
+impl<T: zerocopy::IntoBytes> OGCopy<T> {
+    /// Create a new `OGCopy` from a valid instance of type `T`.
+    // Because for any type `T` in general it may contain padding bytes, we
+    // require the bound of `T: zerocopy::IntoBytes`, which ensures that all
+    // bytes backing `T` are initialized.
+    pub fn new(val: T) -> Self {
+        OGCopy {
+            inner: MaybeValid::new(val),
+        }
+    }
+}
+
 /// Clone an `OGCopy` by performing a copy of its underlying memory.
 ///
 /// `OGCopy` is a wrapper around some initialized memory of size and align equal
@@ -71,14 +75,12 @@ impl<T> Clone for OGCopy<T> {
     }
 }
 
-impl<T: BitPatternValidate> OGCopy<T> {
+impl<T: zerocopy::TryFromBytes + zerocopy::Immutable + zerocopy::KnownLayout> OGCopy<T> {
     pub fn validate(self) -> Result<T, Self> {
         if DISABLE_VALIDATION_CHECKS {
             Ok(unsafe { self.assume_valid() })
         } else {
-            if unsafe {
-                <T as BitPatternValidate>::validate(&self.inner as *const MaybeValid<T> as *const T)
-            } {
+            if <T as zerocopy::TryFromBytes>::try_ref_from_bytes(self.inner.as_bytes()).is_ok() {
                 Ok(unsafe { self.inner.assume_valid() })
             } else {
                 Err(self)
@@ -86,17 +88,33 @@ impl<T: BitPatternValidate> OGCopy<T> {
         }
     }
 
+    // While `T` may have padding bytes, we know that the reference to `T` is
+    // immutable and `T` itself does not feature interior mutability. As such,
+    // none of `T`'s padding bytes can be written to (with potentially
+    // uninitialized data), and so providing this reference is safe. Providing a
+    // mutable reference would, in turn, not be safe as that would mutably
+    // expose `T`'s padding bytes.
     pub fn validate_ref<'a>(&'a self) -> Option<&'a T> {
         if DISABLE_VALIDATION_CHECKS {
             Some(unsafe { self.assume_valid_ref() })
         } else {
-            if unsafe {
-                <T as BitPatternValidate>::validate(&self.inner as *const MaybeValid<T> as *const T)
-            } {
-                Some(unsafe { self.inner.assume_valid_ref() })
-            } else {
-                None
-            }
+            <T as zerocopy::TryFromBytes>::try_ref_from_bytes(self.inner.as_bytes()).ok()
         }
+    }
+}
+
+impl<T: zerocopy::FromBytes + zerocopy::Immutable + zerocopy::KnownLayout> OGCopy<T> {
+    pub fn valid(self) -> T {
+        unsafe { self.assume_valid() }
+    }
+
+    // While `T` may have padding bytes, we know that the reference to `T` is
+    // immutable and `T` itself does not feature interior mutability. As such,
+    // none of `T`'s padding bytes can be written to (with potentially
+    // uninitialized data), and so providing this reference is safe. Providing a
+    // mutable reference would, in turn, not be safe as that would mutably
+    // expose `T`'s padding bytes.
+    pub fn valid_ref<'a>(&'a self) -> &'a T {
+        unsafe { self.assume_valid_ref() }
     }
 }

@@ -3,7 +3,6 @@
 use core::cell::UnsafeCell;
 
 use crate::alloc_tracker::AllocTracker;
-use crate::bit_pattern_validate::BitPatternValidate;
 use crate::id::OGID;
 use crate::markers::AccessScope;
 use crate::maybe_valid::MaybeValid;
@@ -247,7 +246,12 @@ impl<'alloc, ID: OGID, T: Copy> OGMutSlice<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: BitPatternValidate> OGMutSlice<'alloc, ID, T> {
+impl<
+    'alloc,
+    ID: OGID,
+    T: zerocopy::TryFromBytes + zerocopy::Immutable + zerocopy::KnownLayout + zerocopy::KnownLayout,
+> OGMutSlice<'alloc, ID, T>
+{
     /// Create a readable, dereferencable slice reference over `self.len()`
     /// elements of type `T` to the memory behind this [`OGSlice`].
     ///
@@ -258,6 +262,22 @@ impl<'alloc, ID: OGID, T: BitPatternValidate> OGMutSlice<'alloc, ID, T> {
         access_scope: &'access AccessScope<ID>,
     ) -> Option<OGVal<'alloc, 'access, ID, [T]>> {
         self.as_immut().validate(access_scope)
+    }
+}
+
+impl<'alloc, ID: OGID, T: zerocopy::FromBytes + zerocopy::Immutable + zerocopy::KnownLayout>
+    OGMutSlice<'alloc, ID, T>
+{
+    /// Create a readable, dereferencable slice reference over `self.len()`
+    /// elements of type `T` to the memory behind this [`OGSlice`].
+    ///
+    /// This function has the same semantics as [`OGSlice::valid`],
+    /// please refer to its documentation.
+    pub fn valid<'access>(
+        &self,
+        access_scope: &'access AccessScope<ID>,
+    ) -> OGVal<'alloc, 'access, ID, [T]> {
+        self.as_immut().valid(access_scope)
     }
 }
 

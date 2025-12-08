@@ -21,12 +21,6 @@ impl<T> MaybeValid<T> {
         }
     }
 
-    pub fn new(val: T) -> Self {
-        MaybeValid {
-            inner: MaybeUninit::new(val),
-        }
-    }
-
     /// Create a `MaybeValid` by filling its contents from a byte-slice.
     ///
     /// # Panic
@@ -75,6 +69,14 @@ impl<T> MaybeValid<T> {
 
     pub fn write(&mut self, val: T) -> &mut T {
         self.inner.write(val)
+    }
+}
+
+impl<T: zerocopy::IntoBytes> MaybeValid<T> {
+    pub fn new(val: T) -> Self {
+        MaybeValid {
+            inner: MaybeUninit::new(val),
+        }
     }
 }
 

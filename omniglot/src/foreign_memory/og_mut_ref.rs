@@ -3,7 +3,6 @@
 use core::cell::UnsafeCell;
 
 use crate::alloc_tracker::AllocTracker;
-use crate::bit_pattern_validate::BitPatternValidate;
 use crate::id::OGID;
 use crate::markers::AccessScope;
 use crate::maybe_valid::MaybeValid;
@@ -250,7 +249,9 @@ impl<'alloc, ID: OGID, T> OGMutRef<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: BitPatternValidate> OGMutRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: zerocopy::TryFromBytes + zerocopy::Immutable + zerocopy::KnownLayout>
+    OGMutRef<'alloc, ID, T>
+{
     /// Create a readable, dereferencable reference of type `T` to the memory
     /// behind this `OGMutRef`.
     ///
@@ -263,6 +264,24 @@ impl<'alloc, ID: OGID, T: BitPatternValidate> OGMutRef<'alloc, ID, T> {
         // OGRef's `validate` will perform an ID imprint check.
 
         self.as_immut().validate(access_scope)
+    }
+}
+
+impl<'alloc, ID: OGID, T: zerocopy::FromBytes + zerocopy::Immutable + zerocopy::KnownLayout>
+    OGMutRef<'alloc, ID, T>
+{
+    /// Create a readable, dereferencable reference of type `T` to the memory
+    /// behind this `OGMutRef`.
+    ///
+    /// This function has the same semantics as [`OGRef::valid`], please refer to
+    /// its documentation.
+    pub fn valid<'access>(
+        &self,
+        access_scope: &'access AccessScope<ID>,
+    ) -> OGVal<'alloc, 'access, ID, T> {
+        // OGRef's `validate` will perform an ID imprint check.
+
+        self.as_immut().valid(access_scope)
     }
 }
 

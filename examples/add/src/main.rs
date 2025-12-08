@@ -53,8 +53,7 @@ fn main() {
                     "add(1, 2) = {}",
                     lib.add(1, 2, &mut alloc, &mut access)
                         .expect("Error executing add function")
-                        .validate()
-                        .expect("Error validating returned value")
+                        .valid()
                 );
             },
         );

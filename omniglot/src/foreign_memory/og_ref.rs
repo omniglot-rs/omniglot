@@ -4,7 +4,6 @@ use core::cell::UnsafeCell;
 use core::marker::PhantomData;
 
 use crate::alloc_tracker::AllocTracker;
-use crate::bit_pattern_validate::BitPatternValidate;
 use crate::id::OGID;
 use crate::markers::AccessScope;
 use crate::maybe_valid::MaybeValid;
@@ -195,18 +194,20 @@ impl<'alloc, ID: OGID, T> OGRef<'alloc, ID, T> {
     }
 }
 
-impl<'alloc, ID: OGID, T: BitPatternValidate> OGRef<'alloc, ID, T> {
+impl<'alloc, ID: OGID, T: zerocopy::TryFromBytes + zerocopy::Immutable + zerocopy::KnownLayout>
+    OGRef<'alloc, ID, T>
+{
     /// Create a readable, dereferencable reference of type `T` to the memory
     /// behind this [`OGRef`].
     ///
-    /// This function takes a shared `AccessScope` reference, ensuring that
+    /// This function takes a shared [`AccessScope`] reference, ensuring that
     /// neither host nor foreign code can concurrently modify any (possibly
     /// aliased) foreign memory for the duration that the returned reference
     /// exists.
     ///
     /// It then checks whether the current contents of this memory would
     /// constitute a valid instance of type `T`, as determined by
-    /// [`BitPatternValidate`]. If the reference does not point to a valid
+    /// [`zerocopy::TryFromBytes`]. If the reference does not point to a valid
     /// instance of type `T` (and the unsound `disable_validation_checks` crate
     /// feature is not enabled), it returns None. Otherwise, it returns a
     /// dereferencable reference, bound to the supplied [`AccessScope`].
@@ -219,16 +220,41 @@ impl<'alloc, ID: OGID, T: BitPatternValidate> OGRef<'alloc, ID, T> {
         if DISABLE_VALIDATION_CHECKS {
             Some(unsafe { self.assume_valid(access_scope) })
         } else {
-            if unsafe {
-                <T as BitPatternValidate>::validate(
-                    self.reference as *const UnsafeCell<MaybeValid<T>> as *const T,
-                )
-            } {
+            if <T as zerocopy::TryFromBytes>::try_ref_from_bytes(
+                unsafe { &*self.reference.get() }.as_bytes(),
+            )
+            .is_ok()
+            {
                 Some(unsafe { self.assume_valid(access_scope) })
             } else {
                 None
             }
         }
+    }
+}
+
+impl<'alloc, ID: OGID, T: zerocopy::FromBytes + zerocopy::Immutable + zerocopy::KnownLayout>
+    OGRef<'alloc, ID, T>
+{
+    /// Create a readable, dereferencable reference of type `T` to the memory
+    /// behind this [`OGRef`].
+    ///
+    /// This function takes a shared [`AccessScope`] reference, ensuring that
+    /// neither host nor foreign code can concurrently modify any (possibly
+    /// aliased) foreign memory for the duration that the returned reference
+    /// exists.
+    ///
+    /// Because of the trait bound of [`zerocopy::FromBytes`], we know that
+    /// every bit pattern underneath this reference is a valid value for type
+    /// `T`. As such, this conversion is infallible.
+    pub fn valid<'access>(
+        &self,
+        access_scope: &'access AccessScope<ID>,
+    ) -> OGVal<'alloc, 'access, ID, T> {
+        // Every bit-pattern of this reference is a valid instance of T, so we
+        // can safely call `assume_valid`. This function also checks the access
+        // scope imprint:
+        unsafe { self.assume_valid(access_scope) }
     }
 }
 

@@ -14,7 +14,6 @@ extern crate std;
 // Public modules:
 pub mod abi;
 pub mod alloc_tracker;
-pub mod bit_pattern_validate;
 pub mod foreign_memory;
 pub mod id;
 pub mod markers;

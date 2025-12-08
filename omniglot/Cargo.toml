@@ -58,3 +58,4 @@ alloc_scope_separate_active_valid_lt = []
 
 [dependencies]
 seq-macro = "0.3.6"
+zerocopy = { version = "0.8.31", default-features = false }
