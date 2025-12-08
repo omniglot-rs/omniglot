@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 use crate::OGResult;
 use crate::foreign_memory::og_copy::OGCopy;
 use crate::rt::OGRuntime;

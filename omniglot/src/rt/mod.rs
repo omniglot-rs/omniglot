@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 // TODO: why do we need these?
 pub mod mock;
 pub mod rv32i_c;

@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 use core::cmp::{PartialEq, PartialOrd};
 use core::fmt::Debug;
 use core::sync::atomic::{AtomicU64, Ordering};

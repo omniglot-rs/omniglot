@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 //! Omniglot-instance IDs.
 //!
 //! Omiglot enforces many of its safety invariants by issuing affine marker type

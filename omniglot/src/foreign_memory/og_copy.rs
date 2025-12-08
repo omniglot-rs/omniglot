@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 use core::mem::MaybeUninit;
 
 use crate::bit_pattern_validate::BitPatternValidate;

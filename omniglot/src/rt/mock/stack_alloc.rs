@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 use core::marker::PhantomData;
 
 mod private {

@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 #![no_std]
 // The doc_cfg feature allows an API be documented as only available in some
 // specific platforms. As this is only available on nightly, we gate it behind

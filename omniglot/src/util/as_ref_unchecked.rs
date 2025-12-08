@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 //! This module contains copies of `ptr::as_ref_unchecked` and
 //! `ptr::as_mut_unchecked` from the standard library, as they are
 //! behind a nightly feature flag currently.

@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 pub struct HeapAllocator;
 
 impl super::MockRtAllocator for HeapAllocator {

@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 pub trait OGABI {}
 
 pub mod calling_convention;

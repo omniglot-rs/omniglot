@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 use crate::alloc_tracker::AllocTracker;
 use crate::id::OGID;
 

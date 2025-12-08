@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 //! Definition of the [`BitPatternValidate`] trait and implementations
 //! for primitive Rust types.
 

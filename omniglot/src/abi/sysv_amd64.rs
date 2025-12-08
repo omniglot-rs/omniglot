@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 // ABI
 
 pub enum SysVAMD64ABI {}

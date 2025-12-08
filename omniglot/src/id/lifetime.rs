@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 use core::cell::Cell;
 use core::cmp::{PartialEq, PartialOrd};
 use core::fmt::Debug;

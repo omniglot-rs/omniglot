@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 fn unsound_feature_warn(feature: &str, explanation: &str) {
     println!(
         "cargo:warning=\n\

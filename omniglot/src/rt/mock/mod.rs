@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 use core::cell::UnsafeCell;
 use core::ffi::{CStr, c_void};
 use core::marker::PhantomData;

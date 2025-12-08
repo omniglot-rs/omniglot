@@ -1,3 +1,5 @@
+// -*- fill-column: 80; -*-
+
 //! This module contains copies of `MaybeUninit::as_bytes` and
 //! `MaybeUninit::as_bytes_mut` from the standard library, as they are behind a
 //! Nightly feature flag currently.
