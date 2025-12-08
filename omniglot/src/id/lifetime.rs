@@ -10,12 +10,18 @@ use super::{OGID, OGIDImprint};
 /// TODO: Write docs
 ///
 ///
-/// ```compile_fail
-/// use encapfn::branding::{OGID, OGLifetimeBranding};
+/// ```compile_fail,E0521
+/// use omniglot::id::{OGID, lifetime::OGLifetimeBranding};
 ///
 /// OGLifetimeBranding::new::<()>(move |brand_a| {
 ///     OGLifetimeBranding::new::<()>(move |brand_b| {
-///         assert!(!OGLifetimeBranding::compare(&brand_a.get_imprint(), &brand_b.get_imprint()));
+///         // Create variable `brand` of `brand_a`'s type
+///         let mut brand = brand_a;
+///
+///         // Produces "borrowed data escapes outside of closure" error,
+///         // `brand_a` and `brand_b` are disparate types invariant over
+///         // their lifetime:
+///         brand = brand_b;
 ///     });
 /// });
 /// ```
