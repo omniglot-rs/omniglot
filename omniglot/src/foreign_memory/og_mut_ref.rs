@@ -285,6 +285,30 @@ impl<'alloc, ID: OGID, T: zerocopy::FromBytes + zerocopy::Immutable + zerocopy::
     }
 }
 
+// `zerocopy` does not implement `FromBytes` for raw pointers because of
+// provenance footguns, even though it is not necessarily unsound. We do need to
+// be able to extract pointer values:
+impl<'alloc, ID: OGID, T> OGMutRef<'alloc, ID, *const T> {
+    pub fn valid_ptr<'access>(
+        self,
+        access_scope: &'access AccessScope<ID>,
+    ) -> OGVal<'alloc, 'access, ID, *const T> {
+        unsafe { self.assume_valid(access_scope) }
+    }
+}
+
+// `zerocopy` does not implement `FromBytes` for raw pointers because of
+// provenance footguns, even though it is not necessarily unsound. We do need to
+// be able to extract pointer values:
+impl<'alloc, ID: OGID, T> OGMutRef<'alloc, ID, *mut T> {
+    pub fn valid_ptr<'access>(
+        self,
+        access_scope: &'access AccessScope<ID>,
+    ) -> OGVal<'alloc, 'access, ID, *mut T> {
+        unsafe { self.assume_valid(access_scope) }
+    }
+}
+
 impl<'alloc, ID: OGID, T: Copy> OGMutRef<'alloc, ID, T> {
     /// Copy the contents of a shared reference to this mutable reference.
     ///

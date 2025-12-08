@@ -118,3 +118,21 @@ impl<T: zerocopy::FromBytes + zerocopy::Immutable + zerocopy::KnownLayout> OGCop
         unsafe { self.assume_valid_ref() }
     }
 }
+
+// `zerocopy` does not implement `FromBytes` for raw pointers because of
+// provenance footguns, even though it is not necessarily unsound. We do need to
+// be able to extract pointer values:
+impl<T> OGCopy<*const T> {
+    pub fn valid_ptr(self) -> *const T {
+        unsafe { self.assume_valid() }
+    }
+}
+
+// `zerocopy` does not implement `FromBytes` for raw pointers because of
+// provenance footguns, even though it is not necessarily unsound. We do need to
+// be able to extract pointer values:
+impl<T> OGCopy<*mut T> {
+    pub fn valid_ptr(self) -> *mut T {
+        unsafe { self.assume_valid() }
+    }
+}
