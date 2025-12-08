@@ -18,6 +18,7 @@ pub mod bit_pattern_validate;
 pub mod foreign_memory;
 pub mod id;
 pub mod markers;
+pub mod maybe_valid;
 pub mod rt;
 
 // Internal modules:
