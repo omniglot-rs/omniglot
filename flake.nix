@@ -45,10 +45,6 @@
             rustToolchainComponents;
 
         stableRustToolchain = fenix.packages."${system}".stable.withComponents rustToolchainComponents;
-        stableRustPlatform = pkgs.makeRustPlatform {
-          rustc = stableRustToolchain;
-          cargo = stableRustToolchain;
-        };
 
         rustPackagesForRustToolchain = rustToolchain: rec {
           craneLib = (crane.mkLib pkgs).overrideToolchain (_p: rustToolchain);
@@ -169,7 +165,7 @@
           formatting = treefmt.check self;
         }
         // (lib.mapAttrs' (n: v: lib.nameValuePair "${n}-stable" v) (
-          flakePackageSetForRustToolchain msrvRustToolchain
+          flakePackageSetForRustToolchain stableRustToolchain
         ))
         // (lib.mapAttrs' (n: v: lib.nameValuePair "${n}-msrv" v) (
           flakePackageSetForRustToolchain msrvRustToolchain
