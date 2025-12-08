@@ -94,27 +94,27 @@ macro_rules! unconditionally_valid {
     // ($( #[ $attrs:tt ] )* for<$( $generics:ty ),*> $( $target:tt )*) => {
     //     $( #[ $attrs ] )*
     //     unsafe impl<$( $generics ),*> ::encapfn::types::BitPatternValidate for $( $target )* {
-    // 	fn validate(_t: *const Self) -> bool {
-    // 	    // Unconditionally valid:
-    // 	    true
-    // 	}
+    //  fn validate(_t: *const Self) -> bool {
+    //      // Unconditionally valid:
+    //      true
+    //  }
     //     }
     // }
 
     // Non-generic:
     ($( #[ $( $attrs:tt )* ] )* $target:ty) => {
-	/// Unconditionally valid type.
-	///
-	/// As long as the memory backing this type is accessible,
-	/// well-aligned and conforms to Rust's aliasing requirements, we
-	/// can assume it to be valid without reading back its memory.
-	$( #[ $( $attrs )* ] )*
-	unsafe impl crate::bit_pattern_validate::BitPatternValidate for $target {
-	    unsafe fn validate(_t: *const Self) -> bool {
-		// Unconditionally valid:
-		true
-	    }
-	}
+        /// Unconditionally valid type.
+        ///
+        /// As long as the memory backing this type is accessible,
+        /// well-aligned and conforms to Rust's aliasing requirements, we
+        /// can assume it to be valid without reading back its memory.
+        $( #[ $( $attrs )* ] )*
+        unsafe impl crate::bit_pattern_validate::BitPatternValidate for $target {
+            unsafe fn validate(_t: *const Self) -> bool {
+                // Unconditionally valid:
+                true
+            }
+        }
     }
 }
 

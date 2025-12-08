@@ -33,14 +33,14 @@ impl<const OFFSET: usize, ABI: super::OGABI> ArgumentSlot for Stacked<OFFSET, AB
 
 macro_rules! register_type_def {
     ($name:ident) => {
-	pub enum $name<ABI: super::OGABI> {
-	    _Impossible(Infallible, PhantomData<ABI>)
-	}
+        pub enum $name<ABI: super::OGABI> {
+            _Impossible(Infallible, PhantomData<ABI>)
+        }
     };
 
     ($name:ident, $($rest:ident),* $(,)?) => {
-	register_type_def!($name);
-	register_type_def!($($rest),*);
+        register_type_def!($name);
+        register_type_def!($($rest),*);
     };
 }
 

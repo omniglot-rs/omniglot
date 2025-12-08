@@ -13,7 +13,7 @@ use super::{OGID, OGIDImprint};
 ///
 /// OGLifetimeBranding::new::<()>(move |brand_a| {
 ///     OGLifetimeBranding::new::<()>(move |brand_b| {
-///	    assert!(!OGLifetimeBranding::compare(&brand_a.get_imprint(), &brand_b.get_imprint()));
+///         assert!(!OGLifetimeBranding::compare(&brand_a.get_imprint(), &brand_b.get_imprint()));
 ///     });
 /// });
 /// ```
