@@ -17,5 +17,5 @@ rust-version = "1.88.0"
 [workspace.dependencies.bindgen]
 # Used within crates in examples/*:
 git = "https://github.com/omniglot-rs/rust-bindgen"
-rev = "8c5d80549c02cd57905ced1e6b8ecebe2d92c7f5"
+rev = "1857e928405797948bfb393c0503c2edb79c33b1"
 # path = "../rust-bindgen/bindgen"

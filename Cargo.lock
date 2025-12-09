@@ -64,7 +64,7 @@ dependencies = [
 [[package]]
 name = "bindgen"
 version = "0.69.4"
-source = "git+https://github.com/omniglot-rs/rust-bindgen?rev=8c5d80549c02cd57905ced1e6b8ecebe2d92c7f5#8c5d80549c02cd57905ced1e6b8ecebe2d92c7f5"
+source = "git+https://github.com/omniglot-rs/rust-bindgen?rev=1857e928405797948bfb393c0503c2edb79c33b1#1857e928405797948bfb393c0503c2edb79c33b1"
 dependencies = [
  "bitflags",
  "cexpr",

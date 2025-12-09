@@ -2,9 +2,6 @@
 
 use crate::maybe_valid::MaybeValid;
 
-// use super::og_mut_ref::OGMutRef;
-// TODO!
-
 // Flag settable when enabling the `unsound` crate feature, for benchmarks only:
 use super::DISABLE_VALIDATION_CHECKS;
 
@@ -12,8 +9,10 @@ use super::DISABLE_VALIDATION_CHECKS;
 /// `T`, which may or may not contain a valid instance of type `T`.
 ///
 /// This type is useful to represent return values or owned copies of memory
-/// modified by foreign code. If `T` implements `BitPatternValidate`, it can be
-/// safely transmuted into an instance of or reference to its inner type `T`.
+/// This type is useful to represent owned copies of memory modified by foreign
+/// code. If `T` implements [`zerocopy::FromBytes`] or
+/// [`zerocopy::TryFromBytes`], it can be safely transmuted into an instance of
+/// or reference to its inner type `T`.
 #[repr(transparent)]
 #[derive(Debug)]
 pub struct OGCopy<T> {

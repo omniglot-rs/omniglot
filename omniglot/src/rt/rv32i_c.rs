@@ -1,14 +1,14 @@
 // -*- fill-column: 80; -*-
 
 use crate::OGResult;
-use crate::foreign_memory::og_copy::OGCopy;
+use crate::foreign_memory::og_ret::OGRet;
 use crate::rt::OGRuntime;
 
 pub unsafe trait Rv32iCInvokeRes<RT: Rv32iCBaseRt, T: Sized> {
     fn new() -> Self;
 
-    fn into_result_registers(self, rt: &RT) -> OGResult<OGCopy<T>>;
-    unsafe fn into_result_stacked(self, rt: &RT, stacked_res: *mut T) -> OGResult<OGCopy<T>>;
+    fn into_result_registers(self, rt: &RT) -> OGResult<OGRet<T>>;
+    unsafe fn into_result_stacked(self, rt: &RT, stacked_res: *mut T) -> OGResult<OGRet<T>>;
 }
 
 pub trait Rv32iCBaseRt: OGRuntime<ABI = crate::abi::rv32i_c::Rv32iCABI> + Sized {
